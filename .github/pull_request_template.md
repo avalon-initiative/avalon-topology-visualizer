@@ -16,3 +16,4 @@ Closes #<!-- omit if this repo allows maintainer quick fixes without a ticket --
 
 - [ ] Checks pass (or I noted why not)
 - [ ] Docs updated if behavior changed
+- [ ] I ran `/claim` on the linked issue before starting this work

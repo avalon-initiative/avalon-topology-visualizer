@@ -28,6 +28,24 @@ generally: surfacing it is always welcome.
 Open work lives in GitHub Issues. Completed history is in git; don't
 maintain a separate backlog file in the repo.
 
+### Claiming An Issue
+
+Before starting work, comment `/claim` on the issue — a bot assigns it to
+you automatically, which is what actually reserves it. If an issue is
+already assigned, treat it as taken; comment to ask if it looks stalled
+instead of opening a competing PR. Epics don't work this way — find the
+specific sub-issue you want and `/claim` that instead.
+
+*If it's a longer-running ticket, you don't have to post progress updates,
+but it's nice to leave one now and then — a claimed issue that's been quiet
+for 10 days gets an automatic ping, and is unassigned automatically 4 days
+after that if there's still no activity.*
+
+A CI check (`claim-check.yml`) enforces this: it reads the issue number(s)
+your PR closes (via a closing keyword like `Closes #123`) and fails if you
+aren't assigned to every one of them. `[noissue]`/`[hotfix]` titles skip this
+check, but only for PR authors with write access to the repo.
+
 ## Commits And Pull Requests
 
 Open an issue first when the work is non-trivial. The issue carries context —
