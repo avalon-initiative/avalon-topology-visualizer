@@ -1,9 +1,6 @@
 version: 2
 
 updates:
-  # Keeps the workflow files themselves patched. Harmless to leave in even on
-  # a repo with no workflows installed yet — it just won't find anything to
-  # update.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -14,5 +11,5 @@ updates:
     commit-message:
       prefix: "[noissue] - "
     groups:
-      actions-all:
+      github-actions-all:
         patterns: ["*"]
