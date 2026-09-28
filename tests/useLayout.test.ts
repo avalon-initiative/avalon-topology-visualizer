@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { effectScope, nextTick, ref } from 'vue'
 import { useLayout } from '../src/composables/useLayout'
+import { VIEWER_ID } from '../src/utils/rttStats'
+import type { LayoutLink } from '../src/utils/layout'
 import { mergeGraph } from '../src/utils/mergeGraph'
 import type { MergedGraph } from '../src/utils/mergeGraph'
 import { edge, graph, node } from './graphs'
@@ -82,5 +84,30 @@ describe('useLayout', () => {
 
   it('reports no scale bar when there is no graph', () => {
     expect(make(null).api.bar.value).toEqual({ px: 0, ms: 0 })
+  })
+
+  it('places the viewer by its measured links and relayouts when they change', async () => {
+    const extra = ref<LayoutLink[]>([
+      { a: VIEWER_ID, b: 'http://a', rttMs: 10 },
+      { a: VIEWER_ID, b: 'http://b', rttMs: 10 },
+    ])
+    const scope = effectScope()
+    const api = scope.run(() => useLayout(ref<MergedGraph | null>(merged(10)), extra))!
+    const dist = (id: string) => {
+      const p = api.layout.value!.positions
+      return Math.hypot(p[VIEWER_ID].x - p[id].x, p[VIEWER_ID].y - p[id].y)
+    }
+    expect(Object.keys(api.layout.value!.positions)).toContain(VIEWER_ID)
+    const near = dist('http://a')
+    extra.value = [
+      { a: VIEWER_ID, b: 'http://a', rttMs: 10 },
+      { a: VIEWER_ID, b: 'http://b', rttMs: 200 },
+    ]
+    await nextTick()
+    expect(dist('http://b')).toBeGreaterThan(dist('http://a') * 2)
+    expect(near).toBeGreaterThan(0)
+    extra.value = []
+    await nextTick()
+    expect(Object.keys(api.layout.value!.positions)).not.toContain(VIEWER_ID)
   })
 })

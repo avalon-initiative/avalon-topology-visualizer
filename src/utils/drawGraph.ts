@@ -1,5 +1,6 @@
 import type { Point } from './layout'
 import { shapePoints } from './shapes'
+import { VIEWER_ID, VIEWER_LABEL } from './rttStats'
 import { toScreen } from './viewport'
 import type { View } from './viewport'
 import type { LinkStyle, NodeStyle } from './styleGraph'
@@ -54,6 +55,7 @@ const ARROW_LENGTH_PX = 9
 const DIMMED_ALPHA = 0.4
 
 export function nodeLabel(id: string): string {
+  if (id === VIEWER_ID) return VIEWER_LABEL
   try {
     return new URL(id).host
   } catch {

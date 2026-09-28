@@ -9,7 +9,7 @@ components with the Hub through `@avalon-initiative/common-ui`.
 **Status:** the crawler, the latency layout and the link and node styling are in place. It walks the
 network from a seed node through the SDK, merges every node's partial view into
 one graph, lays it out by measured round trip, and lists the nodes it could not
-reach. The viewer view, probe and trace views are tracked in the issues under the v1
+reach. The probe and trace views are tracked in the issues under the v1
 epic.
 
 The protocol, its architecture docs, and design decisions live in
@@ -83,6 +83,32 @@ the nodes that link to it without shoving the others.
 - **Legend and details:** the legend under the graph names every mark in words,
   so nothing depends on colour alone. Click a node to see everything it reported
   and every link it is on.
+
+## Viewer measurements
+
+**Measure from this browser** times this browser's own requests to every node
+in the graph (including nodes the walk could not reach, which then show as
+loss) every 10 seconds, and adds a node labelled "You (viewer-observed)" with a
+link to each node that answered, whose length is the smoothed round trip.
+The panel lists min, smoothed (EWMA) and loss per node over a rolling window of
+the last 20 attempts, and marks the fastest and slowest reachable nodes. A
+timeout, network error, HTTP error or 429 counts as loss, never as a large
+round trip; a node that never answered has no link to the viewer.
+
+These numbers are viewer-observed: they are what a browser sees, so they
+include DNS, TLS and browser overhead, and they are not the node-to-node round
+trips the rest of the graph uses. A viewer on a page served over https cannot
+measure plain-http nodes (mixed content); those show as loss.
+
+The request is `GET /nodes/status`: public, unauthenticated, cheap, and served
+with `Access-Control-Allow-Origin: *` (including on its 429 and 503 answers), so
+the browser can read the status code. It is a normal CORS request, not
+`no-cors`, because an opaque response would hide a 429 and the app must back
+off from one. It sends no credentials and no custom headers (so no preflight),
+skips the cache, and is cancelled after 5 seconds. At most 4 requests are in
+flight; a failing node is retried with exponential backoff up to 5 minutes, and
+a 429 is left alone for its `Retry-After`. Nothing is measured until started,
+and the client never writes to a node.
 
 ## Snapshots
 

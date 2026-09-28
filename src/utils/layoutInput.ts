@@ -10,7 +10,8 @@ export function coordinateDistanceMs(a: NetworkCoordinate, b: NetworkCoordinate)
   return Math.sqrt(sum) + a.height + b.height
 }
 
-export function toLayoutInput(merged: MergedGraph): { nodeIds: string[]; links: LayoutLink[] } {
+/** `extraLinks` join the graph's own; an endpoint the graph does not know becomes a node, and a link touching none of them is dropped. */
+export function toLayoutInput(merged: MergedGraph, extraLinks: readonly LayoutLink[] = []): { nodeIds: string[]; links: LayoutLink[] } {
   const coordinates = new Map<string, NetworkCoordinate>()
   for (const node of merged.nodes) if (node.self?.coordinate) coordinates.set(node.url, node.self.coordinate)
   for (const link of merged.links) {
@@ -28,5 +29,12 @@ export function toLayoutInput(merged: MergedGraph): { nodeIds: string[]; links: 
       ...(ca && cb ? { coordinateMs: coordinateDistanceMs(ca, cb) } : {}),
     }
   })
-  return { nodeIds: merged.nodes.map((n) => n.url), links }
+  const nodeIds = merged.nodes.map((n) => n.url)
+  const known = new Set(nodeIds)
+  for (const link of extraLinks) {
+    if (!known.has(link.a) && !known.has(link.b)) continue
+    for (const id of [link.a, link.b]) if (!nodeIds.includes(id)) nodeIds.push(id)
+    links.push(link)
+  }
+  return { nodeIds, links }
 }

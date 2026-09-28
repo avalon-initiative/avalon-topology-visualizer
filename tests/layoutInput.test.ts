@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { NetworkCoordinate } from '@avalon-initiative/protocol-sdk'
 import { mergeGraph } from '../src/utils/mergeGraph'
 import { coordinateDistanceMs, toLayoutInput } from '../src/utils/layoutInput'
+import { VIEWER_ID } from '../src/utils/rttStats'
 import { edge, graph, node } from './graphs'
 
 const coord = (x: number, y: number, height = 0): NetworkCoordinate => ({ vector: [x, y], height, error: 0.1 })
@@ -45,5 +46,34 @@ describe('toLayoutInput', () => {
   it('has no estimate when either end has no coordinate', () => {
     const merged = mergeGraph(graph([node('http://a'), node('http://b')], [edge('http://a', 'http://b', 'known')]))
     expect(toLayoutInput(merged).links[0]).not.toHaveProperty('coordinateMs')
+  })
+})
+
+describe('toLayoutInput with extra links', () => {
+  const merged = () => mergeGraph(graph([node('http://a'), node('http://b'), node('http://dead', 'unreachable')], [edge('http://a', 'http://b', 'active', 10)]))
+
+  it('adds the viewer as a node with its measured links', () => {
+    const input = toLayoutInput(merged(), [
+      { a: VIEWER_ID, b: 'http://a', rttMs: 12 },
+      { a: VIEWER_ID, b: 'http://b', rttMs: 30 },
+    ])
+    expect(input.nodeIds).toEqual(['http://a', 'http://b', 'http://dead', VIEWER_ID])
+    expect(input.links.filter((l) => l.a === VIEWER_ID).map((l) => [l.b, l.rttMs])).toEqual([['http://a', 12], ['http://b', 30]])
+    expect(input.links[0]).toMatchObject({ a: 'http://a', b: 'http://b', rttMs: 10 })
+  })
+
+  it('leaves the result unchanged without extra links', () => {
+    expect(toLayoutInput(merged(), [])).toEqual(toLayoutInput(merged()))
+    expect(toLayoutInput(merged()).nodeIds).not.toContain(VIEWER_ID)
+  })
+
+  it('has no viewer node when no link reaches a known node', () => {
+    expect(toLayoutInput(merged(), [{ a: VIEWER_ID, b: 'http://gone', rttMs: 5 }]).nodeIds).not.toContain(VIEWER_ID)
+    expect(toLayoutInput(merged(), [{ a: VIEWER_ID, b: 'http://gone', rttMs: 5 }]).links).toHaveLength(1)
+  })
+
+  it('does not duplicate an endpoint that is already a node', () => {
+    const ids = toLayoutInput(merged(), [{ a: 'http://a', b: 'http://b', rttMs: 1 }]).nodeIds
+    expect(ids).toEqual(['http://a', 'http://b', 'http://dead'])
   })
 })
