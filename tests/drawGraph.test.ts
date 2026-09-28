@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_THEME, drawGraph, nodeLabel, NODE_DRAW_RADIUS, PIN_RING_OFFSET, SELECT_RING_OFFSET } from '../src/utils/drawGraph'
 import type { LinkStyle, NodeStyle } from '../src/utils/styleGraph'
+import { VIEWER_ID, VIEWER_LABEL } from '../src/utils/rttStats'
 
 /** Records every call and property set on a fake 2D context. */
 function recorder() {
@@ -201,5 +202,7 @@ describe('nodeLabel', () => {
   it('shows the host and port of a URL, and falls back to the raw id', () => {
     expect(nodeLabel('https://node.example:8443/x')).toBe('node.example:8443')
     expect(nodeLabel('not a url')).toBe('not a url')
+    expect(nodeLabel(VIEWER_ID)).toBe(VIEWER_LABEL)
+    expect(VIEWER_LABEL).toBe('You (viewer-observed)')
   })
 })

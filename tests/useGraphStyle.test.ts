@@ -61,4 +61,24 @@ describe('useGraphStyle', () => {
     await nextTick()
     expect(api.selected.value).toBeUndefined()
   })
+
+  it('draws extra links (the viewer\'s own) as plain lines alongside the crawl\'s links', () => {
+    const source = ref<MergedGraph | null>(build(['http://a', 'http://b']))
+    const extra = ref([{ a: 'viewer:this-browser', b: 'http://a' }])
+    const api = effectScope().run(() => useGraphStyle(source, extra))!
+    const viewerLine = api.links.value.find((l) => l.a === 'viewer:this-browser')
+    expect(viewerLine).toMatchObject({ kind: 'active', b: 'http://a' })
+    expect(api.links.value).toHaveLength(3)
+  })
+
+  it('has no extra links without a graph, and follows the extra links as they change', () => {
+    const source = ref<MergedGraph | null>(null)
+    const extra = ref([{ a: 'viewer:this-browser', b: 'http://a' }])
+    const api = effectScope().run(() => useGraphStyle(source, extra))!
+    expect(api.links.value).toEqual([])
+    source.value = build(['http://a', 'http://b'])
+    expect(api.links.value).toHaveLength(3)
+    extra.value = []
+    expect(api.links.value).toHaveLength(2)
+  })
 })

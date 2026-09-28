@@ -5,17 +5,20 @@ import NodeDetailPanel from '../components/NodeDetailPanel.vue'
 import NodeIssueList from '../components/NodeIssueList.vue'
 import ScaleBar from '../components/ScaleBar.vue'
 import TopologyCanvas from '../components/TopologyCanvas.vue'
+import ViewerRttPanel from '../components/ViewerRttPanel.vue'
 import styles from '../styles/Home.module.scss'
 import { useCrawler } from '../composables/useCrawler'
 import { useCrawlerForm } from '../composables/useCrawlerForm'
 import { useGraphStyle } from '../composables/useGraphStyle'
+import { useViewerRtt } from '../composables/useViewerRtt'
 import { CANVAS_HEIGHT, CANVAS_WIDTH, useLayout } from '../composables/useLayout'
 import { describeFailure } from '../utils/describeFailure'
 
 const crawler = useCrawler()
 const { phase, merged, progress, error, takenAt, isLive } = crawler
-const { layout, pinned, view, bar, pin, unpin } = useLayout(merged)
-const { selected, nodeStyles, links: linkStyles, detail } = useGraphStyle(merged)
+const viewerRtt = useViewerRtt(merged)
+const { layout, pinned, view, bar, pin, unpin } = useLayout(merged, viewerRtt.links)
+const { selected, nodeStyles, links: linkStyles, detail } = useGraphStyle(merged, viewerRtt.drawLinks)
 const { seedUrl, refreshSeconds, walk, onFile, save } = useCrawlerForm(crawler, import.meta.env.VITE_AVALON_SEED_URL ?? '')
 </script>
 
@@ -65,7 +68,7 @@ const { seedUrl, refreshSeconds, walk, onFile, save } = useCrawlerForm(crawler, 
         <TopologyCanvas
           v-if="layout"
           :positions="layout.positions"
-          :links="merged.links"
+          :links="[...merged.links, ...viewerRtt.drawLinks.value]"
           :link-styles="linkStyles"
           :node-styles="nodeStyles"
           :pinned="pinned"
@@ -78,6 +81,7 @@ const { seedUrl, refreshSeconds, walk, onFile, save } = useCrawlerForm(crawler, 
           @select="selected = $event"
         />
         <ScaleBar :px="bar.px" :ms="bar.ms" />
+        <ViewerRttPanel :summaries="viewerRtt.summaries.value" :ranking="viewerRtt.ranking.value" :running="viewerRtt.running.value" @toggle="viewerRtt.toggle" />
         <NodeDetailPanel v-if="detail" :title="detail.title" :rows="detail.rows" />
         <GraphLegend v-if="layout" />
         <NodeIssueList

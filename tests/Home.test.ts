@@ -97,4 +97,86 @@ describe('Home', () => {
     walkTopology.mockRejectedValue(new Error('boom'))
     expect((await walkFrom('http://seed')).text()).toContain('boom')
   })
+
+  describe('viewer measurements', () => {
+    const labels: string[] = []
+    const ctx = new Proxy({} as Record<string, unknown>, {
+      get: (_t, key) => (key === 'fillText' ? (text: string) => labels.push(text) : () => undefined),
+      set: () => true,
+    })
+
+    beforeEach(() => {
+      labels.length = 0
+      vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx as never)
+    })
+
+    afterEach(() => vi.unstubAllGlobals())
+
+    const measured = () => {
+      walkTopology.mockResolvedValue(
+        graph(
+          [node('http://seed:8080'), node('http://b'), node('http://dead', 'unreachable', { failure: { reason: 'timeout', message: 'no response' } })],
+          [edge('http://seed:8080', 'http://b', 'active', 25)],
+        ),
+      )
+      const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input).includes('dead')) throw new TypeError('Failed to fetch')
+        return new Response(null, { status: 200 })
+      })
+      vi.stubGlobal('fetch', fetchMock)
+      return fetchMock
+    }
+
+    it('does not request anything from the nodes until measuring is switched on', async () => {
+      const fetchMock = measured()
+      const wrapper = await walkFrom('http://seed:8080')
+      expect(fetchMock).not.toHaveBeenCalled()
+      expect(wrapper.find('[data-testid="viewer-rtt"]').text()).toContain('viewer-observed')
+      expect(labels).not.toContain('You (viewer-observed)')
+    })
+
+    it('measures every node, shows loss for the unreachable one, and adds the viewer to the drawn graph', async () => {
+      const fetchMock = measured()
+      const wrapper = await walkFrom('http://seed:8080')
+      await wrapper.find('[data-testid="viewer-rtt"] button').trigger('click')
+      await flushPromises()
+      expect(fetchMock.mock.calls.map((c) => c[0]).sort()).toEqual([
+        'http://b/nodes/status',
+        'http://dead/nodes/status',
+        'http://seed:8080/nodes/status',
+      ])
+      const rows = wrapper.findAll('[data-testid="rtt-row"]').map((r) => r.text())
+      expect(rows.find((r) => r.includes('http://dead'))).toContain('100% loss')
+      expect(rows.find((r) => r.includes('http://b'))).toContain('0% loss')
+      expect(wrapper.find('[data-testid="viewer-rtt"] button').text()).toBe('Stop measuring')
+      expect(labels).toContain('You (viewer-observed)')
+      wrapper.unmount()
+    })
+
+    it('draws a link from the viewer to each node that answered, and none to one that did not', async () => {
+      measured()
+      const wrapper = await walkFrom('http://seed:8080')
+      await wrapper.find('[data-testid="viewer-rtt"] button').trigger('click')
+      await flushPromises()
+      const styled = wrapper.findComponent({ name: 'TopologyCanvas' }).props('linkStyles') as { a: string; b: string }[]
+      const toViewer = styled.filter((l) => l.a === 'viewer:this-browser' || l.b === 'viewer:this-browser').map((l) => (l.a === 'viewer:this-browser' ? l.b : l.a))
+      expect(toViewer.sort()).toEqual(['http://b', 'http://seed:8080'])
+      wrapper.unmount()
+    })
+
+    it('stops when asked and leaves the graph and summary counts alone', async () => {
+      const fetchMock = measured()
+      const wrapper = await walkFrom('http://seed:8080')
+      const button = () => wrapper.find('[data-testid="viewer-rtt"] button')
+      await button().trigger('click')
+      await flushPromises()
+      await button().trigger('click')
+      expect(button().text()).toBe('Measure from this browser')
+      const calls = fetchMock.mock.calls.length
+      await new Promise((r) => setTimeout(r, 30))
+      expect(fetchMock.mock.calls.length).toBe(calls)
+      expect(wrapper.find('[data-testid="summary"]').text()).toMatch(/Nodes visited\s*2/)
+      expect(wrapper.find('[data-testid="summary"]').text()).toMatch(/Links\s*1/)
+    })
+  })
 })
