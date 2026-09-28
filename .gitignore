@@ -1,3 +1,9 @@
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+
 # -----------------------------------------------------------------------------
 # Common patterns — OS junk, editors, secrets, scratch. Stack-specific entries
 # (target/, node_modules/, __pycache__/, etc.) go above this block, added

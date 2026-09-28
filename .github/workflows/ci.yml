@@ -1,0 +1,35 @@
+name: ci
+
+# Written for when Actions is enabled on this repository. Installing the
+# @avalon-initiative packages needs a token that can read them: either grant this
+# repository access to those packages in their settings (then GITHUB_TOKEN is
+# enough) or add a PACKAGES_READ_TOKEN secret with read:packages.
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Lint, type-check, build, test
+        run: make check
