@@ -6,11 +6,11 @@ and how they connect. It is its own project, consuming the client SDKs from
 depending on the `avalon-protocol` workspace, and it shares its look and
 components with the Hub through `@avalon-initiative/common-ui`.
 
-**Status:** the crawler and the latency layout are in place. It walks the
+**Status:** the crawler, the latency layout and the link and node styling are in place. It walks the
 network from a seed node through the SDK, merges every node's partial view into
 one graph, lays it out by measured round trip, and lists the nodes it could not
-reach. Link and node styling, the viewer view, probe and trace views are tracked
-in the issues under the v1 epic.
+reach. The viewer view, probe and trace views are tracked in the issues under the v1
+epic.
 
 The protocol, its architecture docs, and design decisions live in
 [`avalon-protocol`](https://github.com/avalon-initiative/avalon-protocol).
@@ -66,6 +66,23 @@ Drag a node to pin it where you want it, and double-click it to release it. The
 layout is deterministic and warm-starts from the previous one, so a refresh with
 similar data moves nodes only a little, and a node that joins appears next to
 the nodes that link to it without shoving the others.
+
+## Links and nodes
+
+- **Links:** a solid line is an active link. A mirror source is a coloured line
+  with an arrow pointing to the node that copies from it, so mirroring reads as
+  one-way, and both ends mirroring each other shows two arrows. A faint dashed
+  line is a pair one node only heard about. A line gets thicker with more
+  measured samples and fainter with more lost ones.
+- **Nodes:** the shape is the role (square settlement, diamond indexer, triangle
+  realtime, hexagon gateway, circle combined or unknown). A ring shows the
+  protocol version against the newest seen: thin solid is newest, dashed is
+  behind, dotted is unknown. A node that reports itself stale is faded, one that
+  could not be read is an outline, and an arc around a node shows how far it is
+  behind on data it mirrors.
+- **Legend and details:** the legend under the graph names every mark in words,
+  so nothing depends on colour alone. Click a node to see everything it reported
+  and every link it is on.
 
 ## Snapshots
 
