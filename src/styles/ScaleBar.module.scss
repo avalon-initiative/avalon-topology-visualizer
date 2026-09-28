@@ -1,0 +1,19 @@
+.scale {
+  display: flex;
+  align-items: center;
+  gap: var(--av-space-2);
+  margin-top: var(--av-space-2);
+  font-size: var(--av-text-sm);
+  color: var(--av-color-text-secondary);
+}
+
+.bar {
+  display: inline-block;
+  height: 0.5rem;
+  border: 2px solid var(--av-color-text-secondary);
+  border-top: none;
+}
+
+.label {
+  font-family: var(--av-font-mono);
+}

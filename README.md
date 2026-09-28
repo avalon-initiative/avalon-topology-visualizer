@@ -6,10 +6,11 @@ and how they connect. It is its own project, consuming the client SDKs from
 depending on the `avalon-protocol` workspace, and it shares its look and
 components with the Hub through `@avalon-initiative/common-ui`.
 
-**Status:** the crawler is in place. It walks the network from a seed node
-through the SDK, merges every node's partial view into one graph, and shows a
-summary with the nodes it could not reach. The graph rendering, layout, probe
-and trace views are tracked in the issues under the v1 epic.
+**Status:** the crawler and the latency layout are in place. It walks the
+network from a seed node through the SDK, merges every node's partial view into
+one graph, lays it out by measured round trip, and lists the nodes it could not
+reach. Link and node styling, the viewer view, probe and trace views are tracked
+in the issues under the v1 epic.
 
 The protocol, its architecture docs, and design decisions live in
 [`avalon-protocol`](https://github.com/avalon-initiative/avalon-protocol).
@@ -51,6 +52,20 @@ VITE_AVALON_SEED_URL=http://192.168.7.113:8080
 The node must serve its topology routes to browsers: they are public and open to
 any origin unless the node sets `AVALON_TOPOLOGY_PUBLIC=false`, in which case
 they return 404.
+
+## Reading the graph
+
+Distance on screen is measured response time: each link is drawn as long as its
+round trip, so nodes that answer each other quickly sit close together. A link
+measured from both ends uses the average of the two. Where nothing was measured
+the length is estimated from the nodes' published network coordinates when both
+have one, and otherwise the link is a weak spring that does not pull on the rest.
+The bar under the graph shows the scale in milliseconds.
+
+Drag a node to pin it where you want it, and double-click it to release it. The
+layout is deterministic and warm-starts from the previous one, so a refresh with
+similar data moves nodes only a little, and a node that joins appears next to
+the nodes that link to it without shoving the others.
 
 ## Snapshots
 

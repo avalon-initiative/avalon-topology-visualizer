@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { AvalonButton, AvalonCard, AvalonTextField, AvalonWarningBanner } from '@avalon-initiative/common-ui'
 import NodeIssueList from '../components/NodeIssueList.vue'
+import ScaleBar from '../components/ScaleBar.vue'
+import TopologyCanvas from '../components/TopologyCanvas.vue'
 import styles from '../styles/Home.module.scss'
 import { useCrawler } from '../composables/useCrawler'
 import { useCrawlerForm } from '../composables/useCrawlerForm'
+import { CANVAS_HEIGHT, CANVAS_WIDTH, useLayout } from '../composables/useLayout'
 import { describeFailure } from '../utils/describeFailure'
 
 const crawler = useCrawler()
 const { phase, merged, progress, error, takenAt, isLive } = crawler
+const { layout, pinned, view, bar, pin, unpin } = useLayout(merged)
 const { seedUrl, refreshSeconds, walk, onFile, save } = useCrawlerForm(crawler, import.meta.env.VITE_AVALON_SEED_URL ?? '')
 </script>
 
@@ -54,6 +58,18 @@ const { seedUrl, refreshSeconds, walk, onFile, save } = useCrawlerForm(crawler, 
           <dt>Separate groups</dt>
           <dd>{{ merged.components.length }}</dd>
         </dl>
+        <TopologyCanvas
+          v-if="layout"
+          :positions="layout.positions"
+          :links="merged.links"
+          :pinned="pinned"
+          :view="view"
+          :width="CANVAS_WIDTH"
+          :height="CANVAS_HEIGHT"
+          @pin="pin"
+          @unpin="unpin"
+        />
+        <ScaleBar :px="bar.px" :ms="bar.ms" />
         <NodeIssueList
           title="Rate limited"
           tone="warning"
