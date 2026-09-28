@@ -1,0 +1,10 @@
+.canvas {
+  display: block;
+  width: 100%;
+  max-width: 45rem;
+  height: auto;
+  touch-action: none;
+  border: 1px solid var(--av-color-border);
+  border-radius: var(--av-radius-md);
+  background: var(--av-color-surface);
+}
