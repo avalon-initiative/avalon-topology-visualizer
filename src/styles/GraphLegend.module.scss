@@ -1,0 +1,102 @@
+.legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--av-space-4);
+  margin-top: var(--av-space-4);
+}
+
+.title {
+  margin-bottom: var(--av-space-2);
+  font-size: var(--av-text-sm);
+  font-weight: 600;
+  color: var(--av-color-text-secondary);
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--av-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--av-space-2);
+  font-size: var(--av-text-sm);
+  color: var(--av-color-text-secondary);
+}
+
+.glyph {
+  flex-shrink: 0;
+}
+
+.active {
+  stroke: var(--av-color-border-strong);
+  stroke-width: 2.5;
+}
+
+.known {
+  stroke: var(--av-color-border-strong);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  opacity: 0.6;
+}
+
+.mirror {
+  stroke: var(--av-color-accent-secondary);
+  stroke-width: 2;
+}
+
+.arrow {
+  fill: var(--av-color-accent-secondary);
+}
+
+.solid {
+  fill: var(--av-color-primary);
+}
+
+.hollow {
+  fill: none;
+  stroke: var(--av-color-primary);
+  stroke-width: 2;
+}
+
+.dimmed {
+  opacity: 0.4;
+}
+
+.ring {
+  fill: none;
+}
+
+.ring-solid {
+  stroke: var(--av-color-success);
+  stroke-width: 1;
+}
+
+.ring-dashed {
+  stroke: var(--av-color-warning);
+  stroke-width: 2;
+  stroke-dasharray: 3 3;
+}
+
+.ring-dotted {
+  stroke: var(--av-color-text-muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 1 3;
+}
+
+.lag {
+  fill: none;
+  stroke: var(--av-color-danger);
+  stroke-width: 3;
+}
+
+.pin {
+  fill: none;
+  stroke: var(--av-color-warning);
+  stroke-width: 2.5;
+}

@@ -52,6 +52,19 @@ describe('Home', () => {
     expect(wrapper.find('[data-testid="scale-bar"]').text()).toMatch(/\d+ ms round trip/)
   })
 
+  it('shows the legend with the graph, and details only once a node is selected', async () => {
+    walkTopology.mockResolvedValue(graph([node('http://seed:8080'), node('http://b')], [edge('http://seed:8080', 'http://b', 'active', 25)]))
+    const wrapper = await walkFrom('http://seed:8080')
+    expect(wrapper.find('[aria-label="Legend"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Selected node"]').exists()).toBe(false)
+    wrapper.findComponent({ name: 'TopologyCanvas' }).vm.$emit('select', 'http://b')
+    await flushPromises()
+    expect(wrapper.find('[aria-label="Selected node"]').text()).toContain('http://b')
+    wrapper.findComponent({ name: 'TopologyCanvas' }).vm.$emit('select', undefined)
+    await flushPromises()
+    expect(wrapper.find('[aria-label="Selected node"]').exists()).toBe(false)
+  })
+
   it('shows no graph before there is a walk', () => {
     const wrapper = mount(Home)
     expect(wrapper.find('canvas').exists()).toBe(false)

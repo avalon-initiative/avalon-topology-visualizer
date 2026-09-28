@@ -81,6 +81,51 @@ describe('TopologyCanvas', () => {
     expect(wrapper.emitted('unpin')).toEqual([['http://a']])
   })
 
+  it('selects a node on a click without pinning it', async () => {
+    const wrapper = mount(TopologyCanvas, { props: props() })
+    const canvas = wrapper.find('canvas')
+    await fire(canvas, 'pointerdown', 300, 150)
+    await fire(canvas, 'pointerup', 300, 150)
+    expect(wrapper.emitted('select')).toEqual([['http://b']])
+    expect(wrapper.emitted('pin')).toBeUndefined()
+  })
+
+  it('treats a tiny wobble as a click, not a drag', async () => {
+    const wrapper = mount(TopologyCanvas, { props: props() })
+    const canvas = wrapper.find('canvas')
+    await fire(canvas, 'pointerdown', 300, 150)
+    await fire(canvas, 'pointermove', 302, 151)
+    await fire(canvas, 'pointerup', 302, 151)
+    expect(wrapper.emitted('pin')).toBeUndefined()
+    expect(wrapper.emitted('select')).toEqual([['http://b']])
+  })
+
+  it('does not select when a node is dragged', async () => {
+    const wrapper = mount(TopologyCanvas, { props: props() })
+    const canvas = wrapper.find('canvas')
+    await fire(canvas, 'pointerdown', 300, 150)
+    await fire(canvas, 'pointermove', 340, 190)
+    await fire(canvas, 'pointerup', 340, 190)
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(wrapper.emitted('pin')).toHaveLength(1)
+  })
+
+  it('clears the selection when empty space is clicked', async () => {
+    const wrapper = mount(TopologyCanvas, { props: props() })
+    const canvas = wrapper.find('canvas')
+    await fire(canvas, 'pointerdown', 20, 20)
+    await fire(canvas, 'pointerup', 20, 20)
+    expect(wrapper.emitted('select')).toEqual([[undefined]])
+  })
+
+  it('redraws when the selection changes', async () => {
+    const wrapper = mount(TopologyCanvas, { props: props() })
+    await flushPromises()
+    const before = calls.filter((c) => c === 'clearRect').length
+    await wrapper.setProps({ selected: 'http://a' })
+    expect(calls.filter((c) => c === 'clearRect').length).toBe(before + 1)
+  })
+
   it('does not fail when the canvas has no 2D context', () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
     expect(() => mount(TopologyCanvas, { props: props() })).not.toThrow()
