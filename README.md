@@ -6,9 +6,10 @@ and how they connect. It is its own project, consuming the client SDKs from
 depending on the `avalon-protocol` workspace, and it shares its look and
 components with the Hub through `@avalon-initiative/common-ui`.
 
-**Status:** app skeleton. It walks the network from a seed node through the
-SDK and shows a summary; the graph rendering, layout, probe and trace views are
-tracked in the issues under the v1 epic.
+**Status:** the crawler is in place. It walks the network from a seed node
+through the SDK, merges every node's partial view into one graph, and shows a
+summary with the nodes it could not reach. The graph rendering, layout, probe
+and trace views are tracked in the issues under the v1 epic.
 
 The protocol, its architecture docs, and design decisions live in
 [`avalon-protocol`](https://github.com/avalon-initiative/avalon-protocol).
@@ -50,6 +51,16 @@ VITE_AVALON_SEED_URL=http://192.168.7.113:8080
 The node must serve its topology routes to browsers: they are public and open to
 any origin unless the node sets `AVALON_TOPOLOGY_PUBLIC=false`, in which case
 they return 404.
+
+## Snapshots
+
+**Save snapshot** downloads the current graph as JSON, and **Open snapshot**
+loads one back. A snapshot holds exactly what a walk produces (nodes with their
+reporters, every node's observation of each link, and which limit stopped the
+walk), so a saved file and a live walk feed the app the same way. The walk
+repeats every refresh interval (default 30 seconds; 0 walks once). A walk that
+hits its node or depth limit says so instead of presenting a partial graph as
+complete.
 
 ## Checks
 
