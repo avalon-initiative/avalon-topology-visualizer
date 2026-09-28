@@ -26,3 +26,27 @@
     font-family: var(--av-font-mono);
   }
 }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--av-space-3);
+}
+
+.file {
+  cursor: pointer;
+  font-size: var(--av-text-sm);
+  color: var(--av-color-primary);
+}
+
+.fileInput {
+  display: none;
+}
+
+.progress,
+.source {
+  margin: var(--av-space-3) 0;
+  font-size: var(--av-text-sm);
+  color: var(--av-color-text-secondary);
+}
