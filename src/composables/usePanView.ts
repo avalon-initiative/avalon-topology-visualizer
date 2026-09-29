@@ -29,6 +29,10 @@ export function usePanView(s: PanSources) {
     panBy(dx: number, dy: number) {
       offset.value = clamp({ dx: pan.value.dx + dx, dy: pan.value.dy + dy })
     },
+    /** Sets the offset (clamped), for callers that compute a pan themselves, such as zoom about a point. */
+    panTo(next: Pan) {
+      offset.value = clamp(next)
+    },
     reset() {
       offset.value = NO_PAN
     },

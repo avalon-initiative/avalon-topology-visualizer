@@ -70,6 +70,15 @@ layout is deterministic and warm-starts from the previous one, so a refresh with
 similar data moves nodes only a little, and a node that joins appears next to
 the nodes that link to it without shoving the others.
 
+## Controls
+
+- **Pan:** drag empty space. The graph can be dragged part way off the stage but never fully out of reach.
+- **Pin a node:** drag it. Double-click a pinned node to release it.
+- **Select a node:** click it to open its details.
+- **Zoom:** scroll the wheel, pinch on a touchscreen or trackpad, or use the **+** and **-** buttons. Zoom is a multiple of the fitted size, from 25% to 1200%, and the scale bar always matches what is on screen.
+- **Reset:** double-click empty space or choose **Reset view** to return to the fitted size and position.
+- **Keyboard** (with the graph focused): arrow keys pan (hold Shift to move faster), **+** or **=** zooms in, **-** zooms out, **0** resets.
+
 ## Links and nodes
 
 - **Links:** a solid line is an active link. A mirror source is a coloured line

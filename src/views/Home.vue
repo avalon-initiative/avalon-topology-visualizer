@@ -19,7 +19,8 @@ import { useCrawler } from '../composables/useCrawler'
 import { useCrawlerForm } from '../composables/useCrawlerForm'
 import { useElementSize } from '../composables/useElementSize'
 import { useGraphStyle } from '../composables/useGraphStyle'
-import { usePanView } from '../composables/usePanView'
+import { useZoomView } from '../composables/useZoomView'
+import { useScaleBar } from '../composables/useScaleBar'
 import { useLayout } from '../composables/useLayout'
 import { useProbe } from '../composables/useProbe'
 import { useSelectionDrawer } from '../composables/useSelectionDrawer'
@@ -46,12 +47,13 @@ const viewerRtt = useViewerRtt(merged)
 const probe = useProbe(merged, () => selected.value)
 const extraLayoutLinks = computed(() => [...viewerRtt.links.value, ...probe.links.value])
 const extraDrawLinks = computed(() => [...viewerRtt.drawLinks.value, ...probe.drawLinks.value])
-const { layout, pinned, bar, pin, unpin } = useLayout(merged, extraLayoutLinks, size)
+const { layout, pinned, pin, unpin } = useLayout(merged, extraLayoutLinks, size)
 const { selected, facts, nodeStyles, links: linkStyles, detail } = useGraphStyle(merged, extraDrawLinks)
 const animated = useTweenedPositions(computed(() => layout.value?.positions), timelapse.replaying, () => size.value.width, () => size.value.height)
-// The one view everything uses: the auto-fit plus the user's pan.
-const panView = usePanView({ fitted: () => animated.view.value, positions: () => animated.positions.value, size: () => size.value })
-const view = panView.view
+// The one view everything uses: the auto-fit plus the user's zoom and pan. The scale bar reads it too, so it stays true.
+const zoomView = useZoomView({ fitted: () => animated.view.value, positions: () => animated.positions.value, size: () => size.value })
+const view = zoomView.view
+const bar = useScaleBar(layout, view)
 const extras = useTopologyExtras({
   merged,
   facts,
@@ -235,12 +237,21 @@ function probeSecond() {
           @pin="pin"
           @unpin="unpin"
           @select="selected = $event"
-          @pan="panView.panBy"
-          @reset-view="panView.reset"
+          @pan="zoomView.panBy"
+          @zoom="zoomView.zoomBy"
+          @reset-view="zoomView.reset"
         />
         <p v-else :class="styles.empty">Enter a seed node URL and choose Walk network, or open a saved snapshot.</p>
 
-        <CanvasOverlay :legend-open="workspace.legend.open.value" :panned="panView.panned.value" @toggle-legend="workspace.legend.toggle" @reset-view="panView.reset">
+        <CanvasOverlay
+          :legend-open="workspace.legend.open.value"
+          :panned="zoomView.panned.value"
+          :zoom="zoomView.zoom.value"
+          @toggle-legend="workspace.legend.toggle"
+          @reset-view="zoomView.reset"
+          @zoom-in="zoomView.zoomIn"
+          @zoom-out="zoomView.zoomOut"
+        >
           <template #notices>
             <AvalonWarningBanner v-if="error" title="Could not load the network" :message="error" tone="danger" />
             <AvalonWarningBanner

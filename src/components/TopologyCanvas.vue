@@ -28,6 +28,7 @@ const emit = defineEmits<{
   unpin: [id: string]
   select: [id: string | undefined]
   pan: [dx: number, dy: number]
+  zoom: [factor: number, at: Point]
   resetView: []
 }>()
 
@@ -51,6 +52,7 @@ const handlers = useTopologyCanvas({
   onUnpin: (id) => emit('unpin', id),
   onSelect: (id) => emit('select', id),
   onPan: (dx, dy) => emit('pan', dx, dy),
+  onZoom: (factor, at) => emit('zoom', factor, at),
   onResetView: () => emit('resetView'),
 })
 </script>
@@ -62,13 +64,14 @@ const handlers = useTopologyCanvas({
     tabindex="0"
     :style="{ width: `${width}px`, height: `${height}px` }"
     role="img"
-    aria-label="Network graph. Distance between nodes is measured round trip time. Click a node for details, drag it to pin it, double-click it to release it. Drag empty space to move the view, double-click empty space to reset it. With the graph focused, arrow keys move the view and 0 resets it."
+    aria-label="Network graph. Distance between nodes is measured round trip time. Click a node for details, drag it to pin it, double-click it to release it. Drag empty space to move the view, scroll or pinch to zoom, double-click empty space to reset it. With the graph focused, arrow keys move the view, plus and minus zoom, and 0 resets it."
     @pointerdown="handlers.onPointerDown"
     @pointermove="handlers.onPointerMove"
     @pointerup="handlers.onPointerUp"
     @pointercancel="handlers.onPointerCancel"
     @keydown="handlers.onKeyDown"
     @pointerleave="handlers.onPointerLeave"
+    @wheel.prevent="handlers.onWheel"
     @dblclick="handlers.onDoubleClick"
   />
 </template>
