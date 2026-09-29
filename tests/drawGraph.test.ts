@@ -67,6 +67,98 @@ describe('drawGraph', () => {
     expect(r.of('fillText').map((c) => c.args[0])).toEqual(['a:1', 'b:2'])
   })
 
+  describe('labels', () => {
+    const cluster = {
+      ...base,
+      positions: { 'http://192.168.7.113:8080': { x: 0, y: 0 }, 'http://192.168.7.174:8080': { x: 4, y: 3 }, 'http://192.168.7.183:8080': { x: 2, y: 8 }, 'http://192.168.7.204:8080': { x: 9, y: 6 } },
+      links: [],
+      view: { scale: 3, tx: 200, ty: 150 },
+    }
+    const plainStyle: NodeStyle = { shape: 'circle', hollow: false, dimmed: false, version: 'unknown', lag: 0 }
+    const texts = (r: ReturnType<typeof recorder>) => r.of('fillText').map((c) => c.args[0] as string)
+
+    it('draws every label of a tight cluster, none stacked on another', () => {
+      const r = recorder()
+      drawGraph(r.ctx, cluster)
+      const at = r.of('fillText').map((c) => ({ x: c.args[1] as number, y: c.args[2] as number }))
+      expect(texts(r).sort()).toEqual(['192.168.7.113:8080', '192.168.7.174:8080', '192.168.7.183:8080', '192.168.7.204:8080'])
+      for (let i = 0; i < at.length; i++) for (let j = i + 1; j < at.length; j++) expect(Math.abs(at[i].y - at[j].y) > 10 || Math.abs(at[i].x - at[j].x) > 60).toBe(true)
+    })
+
+    it('backs each label with a halo in the theme colour, under the text', () => {
+      const r = recorder()
+      drawGraph(r.ctx, { ...cluster, theme: { ...DEFAULT_THEME, halo: '#123456' } })
+      expect(r.of('strokeText')).toHaveLength(4)
+      const order = r.calls.map((c) => c.fn).filter((f) => f === 'strokeText' || f === 'fillText')
+      expect(order.slice(0, 2)).toEqual(['strokeText', 'fillText'])
+      expect(r.calls.filter((c) => c.fn === 'set:strokeStyle' && c.args[0] === '#123456')).toHaveLength(4)
+    })
+
+    it('draws a leader line for a label moved away from its node', () => {
+      const r = recorder()
+      const memory = new Map<string, string>()
+      const many = Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`http://192.168.7.${i + 100}:8080`, { x: (i % 4) * 3, y: Math.floor(i / 4) * 3 }]))
+      drawGraph(r.ctx, { ...base, positions: many, links: [], view: { scale: 3, tx: 400, ty: 250 }, width: 800, height: 500, labelMemory: memory })
+      expect([...memory.values()].some((slot) => !slot.endsWith(':0') && !slot.startsWith('hidden'))).toBe(true)
+      expect(r.of('lineTo').length).toBeGreaterThan(0)
+    })
+
+    it('draws nothing for a label with no free slot', () => {
+      const r = recorder()
+      const many = Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`http://192.168.7.${i + 100}:8080`, { x: (i % 4) * 3, y: Math.floor(i / 4) * 3 }]))
+      drawGraph(r.ctx, { ...base, positions: many, links: [], view: { scale: 3, tx: 60, ty: 15 }, width: 130, height: 50 })
+      expect(texts(r).length).toBeLessThan(12)
+      expect(texts(r)).not.toContain('')
+      expect(r.of('strokeText')).toHaveLength(texts(r).length)
+    })
+
+    it('shows the full URL for the hovered node and the short form when crowded out', () => {
+      const tiny = { ...cluster, width: 130, height: 50, view: { scale: 3, tx: 60, ty: 15 } }
+      const plain = recorder()
+      drawGraph(plain.ctx, tiny)
+      expect(texts(plain).some((t) => /^\.\d+$/.test(t))).toBe(true)
+      const hover = recorder()
+      drawGraph(hover.ctx, { ...tiny, hovered: 'http://192.168.7.204:8080' })
+      expect(texts(hover)).toContain('192.168.7.204:8080')
+    })
+
+    it('always draws the full label of the selected, pinned and alerting nodes', () => {
+      const tiny = { ...cluster, width: 130, height: 50, view: { scale: 3, tx: 60, ty: 15 } }
+      const r = recorder()
+      drawGraph(r.ctx, {
+        ...tiny,
+        selected: 'http://192.168.7.113:8080',
+        pinned: new Set(['http://192.168.7.174:8080']),
+        nodeStyles: { 'http://192.168.7.183:8080': { ...plainStyle, alerts: ['stale'] } },
+      })
+      expect(texts(r)).toEqual(expect.arrayContaining(['192.168.7.113:8080', '192.168.7.174:8080', '192.168.7.183:8080']))
+    })
+
+    it('draws a filter-dimmed node label at the faded opacity', () => {
+      const r = recorder()
+      drawGraph(r.ctx, { ...cluster, nodeStyles: { 'http://192.168.7.113:8080': { ...plainStyle, faded: true } } })
+      const alphas = r.calls.filter((c) => c.fn === 'set:globalAlpha').map((c) => c.args[0])
+      expect(alphas).toContain(0.15)
+    })
+
+    it('remembers slots between frames so labels do not move', () => {
+      const memory = new Map<string, string>()
+      drawGraph(recorder().ctx, { ...cluster, labelMemory: memory })
+      const first = [...memory.entries()]
+      expect(first).toHaveLength(4)
+      const r = recorder()
+      drawGraph(r.ctx, { ...cluster, labelMemory: memory })
+      expect([...memory.entries()]).toEqual(first)
+    })
+
+    it('measures with the context when it can', () => {
+      const r = recorder()
+      const ctx = new Proxy(r.ctx as unknown as Record<string, unknown>, { get: (t, k) => (k === 'measureText' ? () => ({ width: 40 }) : t[k as string]) }) as unknown as CanvasRenderingContext2D
+      drawGraph(ctx, base)
+      expect(r.of('fillText')).toHaveLength(2)
+    })
+  })
+
   it('skips a link whose end has no position', () => {
     const r = recorder()
     drawGraph(r.ctx, { ...base, links: [{ a: 'http://a:1', b: 'http://missing' }] })

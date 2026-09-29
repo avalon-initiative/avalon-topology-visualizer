@@ -161,6 +161,25 @@ describe('TopologyCanvas', () => {
     expect(calls.filter((c) => c === 'clearRect').length).toBe(before + 1)
   })
 
+  it('shows the full URL of the hovered node while the pointer is over it, and drops it on leave', async () => {
+    const drawn: string[] = []
+    const capture = new Proxy({} as Record<string, unknown>, {
+      get: (_t, key: string) => (key === 'fillText' ? (text: string) => drawn.push(text) : key === 'then' ? undefined : () => undefined),
+      set: () => true,
+    })
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(capture as never)
+    const positions = Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`http://192.168.7.${100 + i}:8080`, { x: (i % 5) * 4, y: Math.floor(i / 5) * 4 }]))
+    const wrapper = mount(TopologyCanvas, { props: { ...props(), positions, links: [], width: 140, height: 60, view: { scale: 1, tx: 60, ty: 20 } } })
+    await flushPromises()
+    expect(drawn).not.toContain('192.168.7.109:8080')
+    drawn.length = 0
+    await fire(wrapper.find('canvas'), 'pointermove', 60 + 16, 20 + 4)
+    expect(drawn).toContain('192.168.7.109:8080')
+    drawn.length = 0
+    await fire(wrapper.find('canvas'), 'pointerleave', 0, 0)
+    expect(drawn).not.toContain('192.168.7.109:8080')
+  })
+
   it('does not fail when the canvas has no 2D context', () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
     expect(() => mount(TopologyCanvas, { props: props() })).not.toThrow()

@@ -3,6 +3,8 @@ import { shapePoints } from './shapes'
 import { VIEWER_ID, VIEWER_LABEL } from './rttStats'
 import { drawTrace } from './drawTrace'
 import type { TraceDrawing } from './drawTrace'
+import { estimateWidth, LABEL_HEIGHT, placeLabels, shortLabel } from './labelLayout'
+import type { LabelItem, LabelPlacement } from './labelLayout'
 import { linkKey } from './pulses'
 import type { PulseDrawing } from './pulses'
 import { toScreen } from './viewport'
@@ -23,6 +25,8 @@ export interface DrawTheme {
   muted: string
   /** Letter colour on alert badges. */
   badgeText: string
+  /** Backing behind label text so it stays readable over links. */
+  halo: string
 }
 
 export const DEFAULT_THEME: DrawTheme = {
@@ -37,6 +41,7 @@ export const DEFAULT_THEME: DrawTheme = {
   success: '#2ecc71',
   muted: '#94a3b8',
   badgeText: '#0b1220',
+  halo: '#0b1220',
 }
 
 export interface DrawInput {
@@ -47,6 +52,10 @@ export interface DrawInput {
   nodeStyles?: Record<string, NodeStyle>
   pinned: ReadonlySet<string>
   selected?: string
+  /** Node under the pointer: always gets a full label. */
+  hovered?: string
+  /** Slots chosen last frame, updated in place, so labels stay put while nothing moves. */
+  labelMemory?: Map<string, string>
   view: View
   width: number
   height: number
@@ -66,6 +75,10 @@ const DIMMED_ALPHA = 0.4
 const LINK_LABEL_OFFSET_PX = 4
 const FADED_ALPHA = 0.15
 const BADGE_RADIUS = 6
+const LABEL_CLEARANCE = NODE_DRAW_RADIUS + 5
+const HALO_WIDTH = 3
+const HALO_ALPHA = 0.85
+const RANK = { hovered: 4, selected: 3, pinned: 2, alerts: 1, faded: -1 }
 const BADGE_TEXT: Record<AlertKind, string> = { equivocation: '!', stale: 'S' }
 
 export function nodeLabel(id: string): string {
@@ -150,9 +163,59 @@ function drawNode(ctx: CanvasRenderingContext2D, id: string, at: Point, style: N
     ctx.lineWidth = 3
     ctx.stroke()
   }
-  ctx.fillStyle = theme.label
-  ctx.fillText(nodeLabel(id), at.x, at.y + NODE_DRAW_RADIUS + 16)
   ctx.restore()
+}
+
+function labelRank(input: DrawInput, id: string): number {
+  if (id === input.hovered) return RANK.hovered
+  if (id === input.selected) return RANK.selected
+  if (input.pinned.has(id)) return RANK.pinned
+  if (input.nodeStyles?.[id]?.alerts?.length) return RANK.alerts
+  return input.nodeStyles?.[id]?.faded ? RANK.faded : 0
+}
+
+function drawLabel(ctx: CanvasRenderingContext2D, p: LabelPlacement, style: NodeStyle | undefined, theme: DrawTheme) {
+  ctx.save()
+  ctx.globalAlpha = style?.faded ? FADED_ALPHA : style?.dimmed ? DIMMED_ALPHA : 1
+  if (p.leader) {
+    ctx.beginPath()
+    ctx.moveTo(p.leader.from.x, p.leader.from.y)
+    ctx.lineTo(p.leader.to.x, p.leader.to.y)
+    ctx.strokeStyle = theme.link
+    ctx.lineWidth = 1
+    ctx.stroke()
+  }
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  const [cx, cy] = [p.box.x + p.box.w / 2, p.box.y + LABEL_HEIGHT / 2]
+  ctx.lineJoin = 'round'
+  ctx.lineWidth = HALO_WIDTH * 2
+  ctx.strokeStyle = theme.halo
+  ctx.globalAlpha *= HALO_ALPHA
+  ctx.strokeText(p.text, cx, cy)
+  ctx.globalAlpha = style?.faded ? FADED_ALPHA : style?.dimmed ? DIMMED_ALPHA : 1
+  ctx.fillStyle = theme.label
+  ctx.fillText(p.text, cx, cy)
+  ctx.restore()
+}
+
+function drawLabels(ctx: CanvasRenderingContext2D, input: DrawInput, theme: DrawTheme) {
+  const measure = (t: string) => {
+    const w = ctx.measureText?.(t)?.width
+    return typeof w === 'number' && Number.isFinite(w) ? w : estimateWidth(t)
+  }
+  const items: LabelItem[] = Object.entries(input.positions).map(([id, p]) => {
+    const text = nodeLabel(id)
+    return { id, at: toScreen(input.view, p), radius: LABEL_CLEARANCE, text, short: shortLabel(text), rank: labelRank(input, id) }
+  })
+  const placements = placeLabels(items, { width: input.width, height: input.height, measure, previous: input.labelMemory })
+  input.labelMemory?.clear()
+  for (const item of items) {
+    const p = placements.get(item.id)
+    if (!p) continue
+    input.labelMemory?.set(item.id, p.slot)
+    if (p.mode !== 'hidden') drawLabel(ctx, p, input.nodeStyles?.[item.id], theme)
+  }
 }
 
 /** A lettered badge per open alert at the node's upper right; the letter, not only the colour, says which. */
@@ -225,6 +288,11 @@ export function drawGraph(ctx: CanvasRenderingContext2D, input: DrawInput): void
     if (id === selected) ring(ctx, at, NODE_DRAW_RADIUS + SELECT_RING_OFFSET, theme.label, 1.5, [])
   }
 
+  drawLabels(ctx, input, theme)
+
+  ctx.font = '11px sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'alphabetic'
   ctx.fillStyle = theme.label
   for (const link of links) {
     const a = positions[link.a]

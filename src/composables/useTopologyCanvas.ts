@@ -1,4 +1,4 @@
-import { onBeforeUnmount, onMounted, watchEffect } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watchEffect } from 'vue'
 import type { Ref } from 'vue'
 import { DEFAULT_THEME, drawGraph } from '../utils/drawGraph'
 import type { DrawTheme } from '../utils/drawGraph'
@@ -47,12 +47,15 @@ function readTheme(): DrawTheme {
     success: pick('--av-color-success', DEFAULT_THEME.success),
     muted: pick('--av-color-text-muted', DEFAULT_THEME.muted),
     badgeText: pick('--av-color-bg', DEFAULT_THEME.badgeText),
+    halo: pick('--av-color-bg', DEFAULT_THEME.halo),
   }
 }
 
 /** Draws the graph. Click selects a node; drag pins it; double-click releases it. */
 export function useTopologyCanvas(s: TopologyCanvasSources) {
   let theme = DEFAULT_THEME
+  const hovered = ref<string | undefined>()
+  const labelMemory = new Map<string, string>()
   let pressed: { id: string | undefined; from: Point; dragged: boolean } | undefined
 
   onMounted(() => {
@@ -77,6 +80,8 @@ export function useTopologyCanvas(s: TopologyCanvasSources) {
       nodeStyles: s.nodeStyles(),
       pinned: s.pinned(),
       selected: s.selected(),
+      hovered: hovered.value,
+      labelMemory,
       view: s.view(),
       trace: s.trace?.(),
       pulse: s.pulse?.(),
@@ -99,11 +104,15 @@ export function useTopologyCanvas(s: TopologyCanvasSources) {
       if (pressed.id) s.canvas.value?.setPointerCapture?.(e.pointerId)
     },
     onPointerMove(e: PointerEvent) {
-      if (!pressed?.id) return
       const at = local(e)
+      if (!pressed) hovered.value = nodeAt(s.positions(), s.view(), at)
+      if (!pressed?.id) return
       if (!pressed.dragged && Math.hypot(at.x - pressed.from.x, at.y - pressed.from.y) < DRAG_THRESHOLD_PX) return
       pressed.dragged = true
       s.onPin(pressed.id, toWorld(s.view(), at))
+    },
+    onPointerLeave() {
+      hovered.value = undefined
     },
     onPointerUp() {
       if (pressed && !pressed.dragged) s.onSelect(pressed.id)
