@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useDevicePixelRatio } from '../composables/useDevicePixelRatio'
 import styles from '../styles/TopologyCanvas.module.scss'
 import { useTopologyCanvas } from '../composables/useTopologyCanvas'
 import type { TraceDrawing } from '../utils/drawTrace'
@@ -25,6 +26,7 @@ const props = defineProps<{
 const emit = defineEmits<{ pin: [id: string, at: Point]; unpin: [id: string]; select: [id: string | undefined] }>()
 
 const canvas = ref<HTMLCanvasElement | null>(null)
+const pixelRatio = useDevicePixelRatio()
 const handlers = useTopologyCanvas({
   canvas,
   positions: () => props.positions,
@@ -36,8 +38,9 @@ const handlers = useTopologyCanvas({
   view: () => props.view,
   trace: () => props.trace,
   pulse: () => props.pulse,
-  width: props.width,
-  height: props.height,
+  width: () => props.width,
+  height: () => props.height,
+  pixelRatio: () => pixelRatio.value,
   onPin: (id, at) => emit('pin', id, at),
   onUnpin: (id) => emit('unpin', id),
   onSelect: (id) => emit('select', id),
@@ -48,8 +51,7 @@ const handlers = useTopologyCanvas({
   <canvas
     ref="canvas"
     :class="styles.canvas"
-    :width="width"
-    :height="height"
+    :style="{ width: `${width}px`, height: `${height}px` }"
     role="img"
     aria-label="Network graph. Distance between nodes is measured round trip time. Click a node for details, drag it to pin it, double-click to release it."
     @pointerdown="handlers.onPointerDown"

@@ -36,6 +36,15 @@ describe('useTweenedPositions', () => {
     vi.restoreAllMocks()
   })
 
+  it('refits the view when the (reactive) canvas size changes', () => {
+    const width = ref(720)
+    const scope = effectScope()
+    const api = scope.run(() => useTweenedPositions(ref({ a: { x: 0, y: 0 }, b: { x: 100, y: 0 } }), ref(false), width, () => 480))!
+    const before = api.view.value
+    width.value = 1440
+    expect(api.view.value.tx).toBeGreaterThan(before.tx)
+  })
+
   it('follows the target at once when not animating', async () => {
     const { target, api } = make({ a: { x: 0, y: 0 } }, false)
     target.value = { a: { x: 10, y: 10 } }

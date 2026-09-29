@@ -82,6 +82,18 @@ describe('useLayout', () => {
     expect(api.bar.value.px).toBeLessThanOrEqual(120)
   })
 
+  it('lays out independently of the canvas size; only the view follows it', () => {
+    const size = ref({ width: 720, height: 480 })
+    const scope = effectScope()
+    const api = scope.run(() => useLayout(ref<MergedGraph | null>(merged(10, ['http://c'])), undefined, size))!
+    const positions = { ...api.layout.value!.positions }
+    const view = api.view.value
+    size.value = { width: 1600, height: 900 }
+    expect(api.layout.value!.positions).toEqual(positions)
+    expect(api.view.value).not.toEqual(view)
+    expect(api.view.value.tx).toBeGreaterThan(view.tx)
+  })
+
   it('reports no scale bar when there is no graph', () => {
     expect(make(null).api.bar.value).toEqual({ px: 0, ms: 0 })
   })

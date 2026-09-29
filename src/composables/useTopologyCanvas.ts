@@ -23,8 +23,10 @@ export interface TopologyCanvasSources {
   view: () => View
   trace?: () => TraceDrawing | undefined
   pulse?: () => PulseDrawing | undefined
-  width: number
-  height: number
+  /** CSS pixels; the backing store is scaled by `pixelRatio` so drawing stays crisp on dense screens. */
+  width: () => number
+  height: () => number
+  pixelRatio?: () => number
   onPin: (id: string, at: Point) => void
   onUnpin: (id: string) => void
   onSelect: (id: string | undefined) => void
@@ -58,8 +60,16 @@ export function useTopologyCanvas(s: TopologyCanvasSources) {
   })
 
   const stop = watchEffect(() => {
-    const ctx = s.canvas.value?.getContext('2d')
-    if (!ctx) return
+    const canvas = s.canvas.value
+    const ctx = canvas?.getContext('2d')
+    if (!canvas || !ctx) return
+    const width = s.width()
+    const height = s.height()
+    const ratio = s.pixelRatio?.() ?? 1
+    // Assigning the size clears the canvas, so only do it when it changes.
+    if (canvas.width !== Math.round(width * ratio)) canvas.width = Math.round(width * ratio)
+    if (canvas.height !== Math.round(height * ratio)) canvas.height = Math.round(height * ratio)
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
     drawGraph(ctx, {
       positions: s.positions(),
       links: s.links(),
@@ -70,8 +80,8 @@ export function useTopologyCanvas(s: TopologyCanvasSources) {
       view: s.view(),
       trace: s.trace?.(),
       pulse: s.pulse?.(),
-      width: s.width,
-      height: s.height,
+      width,
+      height,
       theme,
     })
   })
