@@ -1,10 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { fitView, nodeAt, scaleBar, toScreen, toWorld } from '../src/utils/viewport'
+import { fitView, MAX_FIT_SCALE, nodeAt, scaleBar, toScreen, toWorld } from '../src/utils/viewport'
 
 describe('fitView', () => {
-  it('centres a small layout without enlarging it', () => {
-    const view = fitView({ a: { x: -10, y: 0 }, b: { x: 10, y: 0 } }, 400, 300)
-    expect(view.scale).toBe(1)
+  it('zooms a tight layout in to fill the canvas and centres it', () => {
+    const positions = { a: { x: 0, y: 0 }, b: { x: 100, y: 150 } }
+    const view = fitView(positions, 400, 300, 40)
+    expect(view.scale).toBeCloseTo(220 / 150)
+    expect(toScreen(view, { x: 50, y: 75 })).toEqual({ x: 200, y: 150 })
+    expect(toScreen(view, positions.a).y).toBeCloseTo(40)
+    expect(toScreen(view, positions.b).y).toBeCloseTo(260)
+  })
+
+  it('never zooms in past the cap, so a near-degenerate layout is not blown up', () => {
+    const view = fitView({ a: { x: -1, y: 0 }, b: { x: 1, y: 0 } }, 400, 300)
+    expect(view.scale).toBe(MAX_FIT_SCALE)
     expect(toScreen(view, { x: 0, y: 0 })).toEqual({ x: 200, y: 150 })
   })
 
@@ -23,6 +32,7 @@ describe('fitView', () => {
 
   it('handles no nodes and a single node', () => {
     expect(fitView({}, 400, 300)).toEqual({ scale: 1, tx: 200, ty: 150 })
+    expect(fitView({ a: { x: 50, y: 50 } }, 400, 300).scale).toBe(MAX_FIT_SCALE)
     expect(toScreen(fitView({ a: { x: 50, y: 50 } }, 400, 300), { x: 50, y: 50 })).toEqual({ x: 200, y: 150 })
   })
 })
