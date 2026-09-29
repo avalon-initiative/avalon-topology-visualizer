@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import styles from '../styles/TopologyCanvas.module.scss'
 import { useTopologyCanvas } from '../composables/useTopologyCanvas'
+import type { TraceDrawing } from '../utils/drawTrace'
 import type { Point } from '../utils/layout'
 import type { LinkStyle, NodeStyle } from '../utils/styleGraph'
 import type { View } from '../utils/viewport'
@@ -14,6 +15,7 @@ const props = defineProps<{
   pinned: ReadonlySet<string>
   selected?: string
   view: View
+  trace?: TraceDrawing
   width: number
   height: number
 }>()
@@ -30,6 +32,7 @@ const handlers = useTopologyCanvas({
   pinned: () => props.pinned,
   selected: () => props.selected,
   view: () => props.view,
+  trace: () => props.trace,
   width: props.width,
   height: props.height,
   onPin: (id, at) => emit('pin', id, at),

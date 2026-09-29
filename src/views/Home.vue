@@ -4,12 +4,14 @@ import GraphLegend from '../components/GraphLegend.vue'
 import NodeDetailPanel from '../components/NodeDetailPanel.vue'
 import NodeIssueList from '../components/NodeIssueList.vue'
 import ScaleBar from '../components/ScaleBar.vue'
+import TracePanel from '../components/TracePanel.vue'
 import TopologyCanvas from '../components/TopologyCanvas.vue'
 import ViewerRttPanel from '../components/ViewerRttPanel.vue'
 import styles from '../styles/Home.module.scss'
 import { useCrawler } from '../composables/useCrawler'
 import { useCrawlerForm } from '../composables/useCrawlerForm'
 import { useGraphStyle } from '../composables/useGraphStyle'
+import { useTrace } from '../composables/useTrace'
 import { useViewerRtt } from '../composables/useViewerRtt'
 import { CANVAS_HEIGHT, CANVAS_WIDTH, useLayout } from '../composables/useLayout'
 import { describeFailure } from '../utils/describeFailure'
@@ -20,6 +22,7 @@ const viewerRtt = useViewerRtt(merged)
 const { layout, pinned, view, bar, pin, unpin } = useLayout(merged, viewerRtt.links)
 const { selected, nodeStyles, links: linkStyles, detail } = useGraphStyle(merged, viewerRtt.drawLinks)
 const { seedUrl, refreshSeconds, walk, onFile, save } = useCrawlerForm(crawler, import.meta.env.VITE_AVALON_SEED_URL ?? '')
+const tracer = useTrace({ target: selected, defaultEntry: () => seedUrl.value })
 </script>
 
 <template>
@@ -74,6 +77,7 @@ const { seedUrl, refreshSeconds, walk, onFile, save } = useCrawlerForm(crawler, 
           :pinned="pinned"
           :selected="selected"
           :view="view"
+          :trace="tracer.drawing.value"
           :width="CANVAS_WIDTH"
           :height="CANVAS_HEIGHT"
           @pin="pin"
@@ -82,6 +86,19 @@ const { seedUrl, refreshSeconds, walk, onFile, save } = useCrawlerForm(crawler, 
         />
         <ScaleBar :px="bar.px" :ms="bar.ms" />
         <ViewerRttPanel :summaries="viewerRtt.summaries.value" :ranking="viewerRtt.ranking.value" :running="viewerRtt.running.value" @toggle="viewerRtt.toggle" />
+        <TracePanel
+          v-model:entry="tracer.entryInput.value"
+          :entry-placeholder="seedUrl"
+          :target="selected"
+          :loading="tracer.loading.value"
+          :error="tracer.error.value"
+          :summary="tracer.summary.value"
+          :playback="tracer.playback.value"
+          @trace="tracer.trace"
+          @replay="tracer.replay"
+          @pause="tracer.togglePause"
+          @speed="tracer.changeSpeed"
+        />
         <NodeDetailPanel v-if="detail" :title="detail.title" :rows="detail.rows" />
         <GraphLegend v-if="layout" />
         <NodeIssueList
