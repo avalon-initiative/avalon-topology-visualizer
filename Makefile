@@ -9,6 +9,14 @@ help: ## List available targets
 install: ## Install dependencies (needs NODE_AUTH_TOKEN with read:packages for the @avalon-initiative scope)
 	npm ci
 
+# Targets that run tools from node_modules install them first when they are missing or stale.
+node_modules: package-lock.json
+	@echo 'Installing dependencies. The @avalon-initiative scope needs NODE_AUTH_TOKEN, e.g. export NODE_AUTH_TOKEN=$$(gh auth token)'
+	npm ci
+	@touch node_modules
+
+dev build lint test check: node_modules
+
 dev: ## Vite dev server on :5173
 	npm run dev
 

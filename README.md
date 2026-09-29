@@ -35,6 +35,9 @@ export NODE_AUTH_TOKEN=$(gh auth token)   # or a personal access token with read
 make install
 ```
 
+`make dev`, `make build`, `make lint`, `make test` and `make check` run the install for you when
+`node_modules` is missing or `package-lock.json` has changed, so the token is the only setup step.
+
 ## Run
 
 ```bash
