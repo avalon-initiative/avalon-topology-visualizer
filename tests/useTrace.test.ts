@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { effectScope, ref } from 'vue'
+import { effectScope, nextTick, ref } from 'vue'
 import { useTrace } from '../src/composables/useTrace'
-import { SPEEDS } from '../src/utils/traceAnimation'
+import { traceMsPerDisplayMs } from '../src/utils/traceAnimation'
 import { reached, stopped } from './traces'
 
 /** A manual animation-frame clock so playback is driven by test time, never the wall. */
@@ -23,11 +23,14 @@ function clock() {
   }
 }
 
-function make(traceFn: unknown, target: string | null = 'http://c') {
+/** Display milliseconds that advance `ms` of trace time at a speed. */
+const disp = (api: ReturnType<typeof make>['api'], ms: number, speed: 'normal' | 'slow' = 'normal') => ms / traceMsPerDisplayMs(api.timeline.value, speed)
+
+function make(traceFn: unknown, target: string | null = 'http://c', extra: Record<string, unknown> = {}) {
   const c = clock()
   const scope = effectScope()
   const t = ref<string | undefined>(target ?? undefined)
-  const api = scope.run(() => useTrace({ target: t, defaultEntry: () => 'http://seed', traceFn: traceFn as never, raf: c.raf, cancelRaf: c.cancelRaf }))!
+  const api = scope.run(() => useTrace({ target: t, defaultEntry: () => 'http://seed', ...extra, traceFn: traceFn as never, raf: c.raf, cancelRaf: c.cancelRaf }))!
   return { api, c, scope, target: t }
 }
 
@@ -44,7 +47,7 @@ describe('useTrace', () => {
     expect(api.playback.value.status).toBe('playing')
     expect(api.drawing.value?.path).toEqual(['viewer:this-browser', 'http://a', 'http://b', 'http://c'])
     c.step(0)
-    c.step(SPEEDS.normal * 8)
+    c.step(disp(api, 8))
     expect(api.playback.value.elapsedMs).toBeCloseTo(8)
     expect(api.frame.value?.reachedOut).toEqual(['http://a'])
   })
@@ -71,7 +74,7 @@ describe('useTrace', () => {
     const { api, c } = make(async () => reached())
     await api.trace()
     c.step(0)
-    c.step(SPEEDS.normal * 3)
+    c.step(disp(api, 3))
     api.togglePause()
     const at = api.playback.value.elapsedMs
     expect(c.pending).toBe(false)
@@ -79,7 +82,7 @@ describe('useTrace', () => {
     expect(api.playback.value.elapsedMs).toBe(at)
     api.togglePause()
     c.step(0)
-    c.step(SPEEDS.normal * 2)
+    c.step(disp(api, 2))
     expect(api.playback.value.elapsedMs).toBeCloseTo(at + 2)
   })
 
@@ -92,7 +95,7 @@ describe('useTrace', () => {
     api.replay()
     expect(api.playback.value).toMatchObject({ status: 'playing', elapsedMs: 0, speed: 'slow' })
     c.step(0)
-    c.step(SPEEDS.slow * 4)
+    c.step(disp(api, 4, 'slow'))
     expect(api.playback.value.elapsedMs).toBeCloseTo(4)
   })
 
@@ -146,5 +149,137 @@ describe('useTrace', () => {
     expect(c.pending).toBe(true)
     scope.stop()
     expect(c.pending).toBe(false)
+  })
+
+  it('picks the selected node as the entry, keeping the field editable', async () => {
+    const fn = vi.fn(async (..._args: unknown[]) => reached())
+    const { api, target } = make(fn)
+    target.value = 'http://picked'
+    api.pickEntry()
+    expect(api.entryInput.value).toBe('http://picked')
+    api.entryInput.value = 'http://typed'
+    await api.trace()
+    expect(fn.mock.calls[0][0]).toBe('http://typed')
+  })
+
+  it('does nothing when picking with no selection', () => {
+    const { api, target } = make(vi.fn(), null)
+    api.pickEntry()
+    api.pickTarget()
+    expect(api.entryInput.value).toBe('')
+    expect(api.target.value).toBeUndefined()
+    target.value = undefined
+  })
+
+  it('defaults the target to the selected node and holds an explicit pick until another node is selected', async () => {
+    const { api, target } = make(vi.fn())
+    expect(api.target.value).toBe('http://c')
+    target.value = 'http://d'
+    api.pickTarget()
+    await nextTick()
+    expect(api.target.value).toBe('http://d')
+    target.value = 'http://e'
+    await nextTick()
+    expect(api.target.value).toBe('http://e')
+  })
+
+  it('swaps entry and target, using the seed when the entry was empty, and traces the swapped pair', async () => {
+    const fn = vi.fn(async (..._args: unknown[]) => reached())
+    const { api } = make(fn)
+    api.swap()
+    expect(api.entryInput.value).toBe('http://c')
+    expect(api.target.value).toBe('http://seed')
+    await api.trace()
+    expect(fn).toHaveBeenCalledWith('http://c', 'http://seed', { ttl: 12 })
+    api.swap()
+    expect(api.entryInput.value).toBe('http://seed')
+    expect(api.target.value).toBe('http://c')
+  })
+
+  it('swap does nothing without a target', () => {
+    const { api } = make(vi.fn(), null)
+    api.swap()
+    expect(api.entryInput.value).toBe('')
+  })
+
+  const map = { 'http://a': { x: 100, y: 0 }, 'http://b': { x: 0, y: 0 }, 'http://c': { x: -100, y: 0 } }
+
+  it('draws a temporary viewer marker beside the entry node when the map has no viewer node, and drops it on clear', async () => {
+    const { api } = make(async () => reached(), 'http://c', { positions: () => map })
+    await api.trace()
+    const v = api.drawing.value?.viewer
+    expect(v).toMatchObject({ id: 'viewer:this-browser', label: 'This browser' })
+    expect(v!.at.x).toBeGreaterThan(100)
+    for (const p of Object.values(map)) expect(Math.hypot(p.x - v!.at.x, p.y - v!.at.y)).toBeGreaterThanOrEqual(48)
+    api.clear()
+    expect(api.drawing.value).toBeUndefined()
+  })
+
+  it('keeps the real viewer node when viewer measurements put one on the map', async () => {
+    const { api } = make(async () => reached(), 'http://c', { positions: () => ({ ...map, 'viewer:this-browser': { x: 0, y: 50 } }) })
+    await api.trace()
+    expect(api.drawing.value?.viewer).toBeUndefined()
+  })
+
+  it('skips the marker when the entry node is not on the map', async () => {
+    const { api } = make(async () => reached(), 'http://c', { positions: () => ({}) })
+    await api.trace()
+    expect(api.drawing.value?.viewer).toBeUndefined()
+  })
+
+  it('keeps the marker off the nodes at any zoom', async () => {
+    const { api } = make(async () => reached(), 'http://c', { positions: () => map, scale: () => 0.5 })
+    await api.trace()
+    const v = api.drawing.value!.viewer!
+    for (const p of Object.values(map)) expect(Math.hypot(p.x - v.at.x, p.y - v.at.y) * 0.5).toBeGreaterThanOrEqual(48 - 1e-9)
+  })
+
+  it('keeps the marker on the visible map when the natural spot is off screen', async () => {
+    const { api } = make(async () => reached(), 'http://c', { positions: () => map, onScreen: (p: { x: number }) => p.x <= 150 })
+    await api.trace()
+    expect(api.drawing.value!.viewer!.at.x).toBeLessThanOrEqual(150)
+  })
+
+  it('numbers the hops and keeps the highlighted hop in step with playback', async () => {
+    const { api, c } = make(async () => reached())
+    await api.trace()
+    expect(api.drawing.value?.hops?.map((h) => [h.index + 1, h.url])).toEqual([[1, 'http://a'], [2, 'http://b'], [3, 'http://c']])
+    expect(api.hop.value).toBeNull()
+    c.step(0)
+    c.step(disp(api, 9))
+    expect(api.hop.value).toBe(0)
+    expect(api.drawing.value?.activeHop).toBe(0)
+    c.step(disp(api, 11))
+    expect(api.hop.value).toBe(1)
+    c.step(1e6)
+    expect(api.hop.value).toBe(2)
+  })
+
+  it('has a fading trail while playing and none once finished', async () => {
+    const { api, c } = make(async () => reached())
+    await api.trace()
+    c.step(0)
+    c.step(disp(api, 20))
+    expect(api.drawing.value?.trail?.length).toBeGreaterThan(0)
+    c.step(1e6)
+    expect(api.drawing.value?.trail).toEqual([])
+  })
+
+  it('labels the end of a stopped trace with its reason', async () => {
+    const { api, c } = make(async () => stopped('no_route'))
+    await api.trace()
+    c.step(0)
+    c.step(1e6)
+    expect(api.drawing.value?.stoppedLabel).toBe('No route')
+  })
+
+  it('plays a typical path over a few seconds of display time', async () => {
+    const { api, c } = make(async () => reached())
+    await api.trace()
+    c.step(0)
+    c.step(11999)
+    expect(api.playback.value.status).toBe('playing')
+    c.step(2)
+    expect(api.playback.value.status).toBe('finished')
   })
 })

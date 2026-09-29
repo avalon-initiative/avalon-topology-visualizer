@@ -1,4 +1,5 @@
 import type { TraceResult } from '@avalon-initiative/protocol-sdk'
+import { formatMs } from './formatRtt'
 
 export const SELF_REPORTED_NOTE =
   'Every hop is reported by the node it names, on its own clock. The path is advisory, not verified, and shows the overlay route rather than every kind of request.'
@@ -20,6 +21,12 @@ export interface HopRow {
   toNextMs: number | null
   /** processingMs plus toNextMs: what this hop adds to the path. */
   costMs: number
+}
+
+/** What one hop reports about itself, short enough to sit beside its node: processing, then the forward round trip. */
+export function hopLabel(row: Pick<HopRow, 'processingMs' | 'toNextMs'>): string {
+  const proc = `proc ${formatMs(row.processingMs)}`
+  return row.toNextMs === null ? proc : `${proc} · fwd ${formatMs(row.toNextMs)}`
 }
 
 export interface TraceSummary {

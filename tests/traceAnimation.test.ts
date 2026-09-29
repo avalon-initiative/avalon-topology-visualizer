@@ -1,15 +1,35 @@
 import { describe, expect, it } from 'vitest'
-import { buildTimeline, frameAt, idlePlayback, NOMINAL_VIEWER_LEG_MS, pause, resume, setSpeed, SPEEDS, start, tick } from '../src/utils/traceAnimation'
+import {
+  activeHop,
+  buildTimeline,
+  displayDurationMs,
+  frameAt,
+  idlePlayback,
+  MAX_DISPLAY_MS,
+  MIN_DISPLAY_MS,
+  NOMINAL_VIEWER_LEG_MS,
+  pause,
+  resume,
+  setSpeed,
+  SPEED_MULTIPLIER,
+  start,
+  tick,
+  traceMsPerDisplayMs,
+  trailFrames,
+  VIEWER_LEG_SHARE,
+} from '../src/utils/traceAnimation'
 import { hop, path, reached, stopped, trace } from './traces'
 
 const V = 'viewer'
+// The viewer legs are a share of the reported time, not a constant.
+const LEG = 36 * VIEWER_LEG_SHARE
 const kinds = (t: ReturnType<typeof buildTimeline>) => t.segments.map((s) => `${s.direction}:${s.kind}:${s.from}>${s.to}:${s.durationMs}`)
 
 describe('buildTimeline', () => {
   it('goes viewer to entry, hop by hop to the target and back, timed from the returned durations', () => {
     const t = buildTimeline(reached(), V)
     expect(kinds(t)).toEqual([
-      `out:transit:viewer>http://a:${NOMINAL_VIEWER_LEG_MS}`,
+      `out:transit:viewer>http://a:${LEG}`,
       'out:dwell:http://a>http://a:2',
       'out:transit:http://a>http://b:10',
       'out:dwell:http://b>http://b:3',
@@ -17,10 +37,11 @@ describe('buildTimeline', () => {
       'out:dwell:http://c>http://c:1',
       'back:transit:http://c>http://b:5',
       'back:transit:http://b>http://a:10',
-      `back:transit:http://a>viewer:${NOMINAL_VIEWER_LEG_MS}`,
+      `back:transit:http://a>viewer:${LEG}`,
     ])
     expect(t.roundTrip).toBe(true)
-    expect(t.totalMs).toBe(2 * NOMINAL_VIEWER_LEG_MS + 2 + 10 + 3 + 5 + 1 + 5 + 10)
+    expect(t.reportedMs).toBe(36)
+    expect(t.totalMs).toBeCloseTo(2 * LEG + 36)
   })
 
   it('marks only the viewer legs as not reported', () => {
@@ -56,7 +77,9 @@ describe('buildTimeline', () => {
     const r = trace(path(['http://a', 2, 20], ['http://b', 3, 40]), { reached: false, stopped_reason: 'target_unreachable', target: 'http://c' })
     const t = buildTimeline(r, V)
     expect(t.segments.at(-1)).toMatchObject({ kind: 'wait', from: 'http://b', durationMs: 40 })
-    expect(t.totalMs).toBe(NOMINAL_VIEWER_LEG_MS + 2 + 10 + 3 + 40)
+    const reported = 2 + 10 + 3 + 40
+    expect(t.reportedMs).toBe(reported)
+    expect(t.totalMs).toBeCloseTo(reported * (1 + VIEWER_LEG_SHARE))
   })
 
   it('repeats a looping node exactly as returned', () => {
@@ -67,11 +90,12 @@ describe('buildTimeline', () => {
 
   it('handles a single hop that is the target', () => {
     const t = buildTimeline(trace([hop('http://a', 4)]), V)
-    expect(kinds(t)).toEqual([`out:transit:viewer>http://a:${NOMINAL_VIEWER_LEG_MS}`, 'out:dwell:http://a>http://a:4', `back:transit:http://a>viewer:${NOMINAL_VIEWER_LEG_MS}`])
+    const leg = 4 * VIEWER_LEG_SHARE
+    expect(kinds(t)).toEqual([`out:transit:viewer>http://a:${leg}`, 'out:dwell:http://a>http://a:4', `back:transit:http://a>viewer:${leg}`])
   })
 
   it('has nothing to animate without hops', () => {
-    expect(buildTimeline(trace([], { reached: false, stopped_reason: 'no_route' }), V)).toEqual({ segments: [], totalMs: 0, roundTrip: false })
+    expect(buildTimeline(trace([], { reached: false, stopped_reason: 'no_route' }), V)).toEqual({ segments: [], totalMs: 0, reportedMs: 0, hopCount: 0, roundTrip: false })
   })
 
   it('treats missing, negative and non-finite durations as zero', () => {
@@ -90,13 +114,13 @@ describe('frameAt', () => {
   })
 
   it('interpolates along a leg by its returned duration', () => {
-    const at = NOMINAL_VIEWER_LEG_MS + 2 + 5
+    const at = LEG + 2 + 5
     expect(frameAt(t, at)).toMatchObject({ from: 'http://a', to: 'http://b', kind: 'transit' })
     expect(frameAt(t, at)?.fraction).toBeCloseTo(0.5)
   })
 
   it('holds still at a node while it processes', () => {
-    expect(frameAt(t, NOMINAL_VIEWER_LEG_MS + 1)).toMatchObject({ kind: 'dwell', from: 'http://a', to: 'http://a', fraction: 0 })
+    expect(frameAt(t, LEG + 1)).toMatchObject({ kind: 'dwell', from: 'http://a', to: 'http://a', fraction: 0 })
   })
 
   it('reaches every hop in order on the way out', () => {
@@ -126,7 +150,7 @@ describe('frameAt', () => {
 
   it('does not stall on a zero-length leg', () => {
     const z = buildTimeline(trace(path(['http://a', 0, 0], ['http://b', 2])), V)
-    expect(frameAt(z, NOMINAL_VIEWER_LEG_MS + 1)).toMatchObject({ kind: 'dwell', from: 'http://b' })
+    expect(frameAt(z, z.segments[0].durationMs + 1)).toMatchObject({ kind: 'dwell', from: 'http://b' })
   })
 })
 
@@ -137,12 +161,23 @@ describe('playback', () => {
     expect(tick(idlePlayback(), 100, t)).toEqual(idlePlayback())
   })
 
-  it('advances in trace time scaled by the speed, not by wall time alone', () => {
+  it('advances in trace time so the whole axis fits the display duration', () => {
     const p = tick(start(idlePlayback(), t), 100, t)
-    expect(p).toMatchObject({ status: 'playing', elapsedMs: 100 / SPEEDS.normal })
+    expect(p).toMatchObject({ status: 'playing', elapsedMs: (100 * t.totalMs) / displayDurationMs(t.reportedMs, 'normal') })
     const slow = tick(start(setSpeed(idlePlayback(), 'slow'), t), 100, t)
-    expect(slow.elapsedMs).toBe(100 / SPEEDS.slow)
+    expect(slow.elapsedMs).toBeCloseTo((100 * t.totalMs) / displayDurationMs(t.reportedMs, 'slow'))
     expect(slow.elapsedMs).toBeLessThan(p.elapsedMs)
+  })
+
+  it('plays through in exactly the display duration, at either speed', () => {
+    for (const speed of ['normal', 'slow'] as const) {
+      const d = displayDurationMs(t.reportedMs, speed)
+      let p = start(setSpeed(idlePlayback(), speed), t)
+      for (let i = 0; i < 100; i++) p = tick(p, d / 100 - 1e-6, t)
+      expect(p.status).toBe('playing')
+      p = tick(p, 1, t)
+      expect(p.status).toBe('finished')
+    }
   })
 
   it('finishes exactly at the end and then stays put', () => {
@@ -180,6 +215,119 @@ describe('playback', () => {
   })
 
   it('slow motion is slower than normal', () => {
-    expect(SPEEDS.slow).toBeGreaterThan(SPEEDS.normal)
+    expect(SPEED_MULTIPLIER.slow).toBeGreaterThan(SPEED_MULTIPLIER.normal)
+  })
+})
+
+describe('displayDurationMs', () => {
+  it('plays a typical few-millisecond path for about four seconds', () => {
+    expect(displayDurationMs(4, 'normal')).toBe(4000)
+    expect(displayDurationMs(4.6, 'normal')).toBeGreaterThan(3500)
+    expect(displayDurationMs(4.6, 'normal')).toBeLessThan(5500)
+  })
+
+  it('never goes below the minimum or above the maximum', () => {
+    expect(displayDurationMs(0.01, 'normal')).toBe(MIN_DISPLAY_MS)
+    expect(displayDurationMs(0, 'normal')).toBe(MIN_DISPLAY_MS)
+    expect(displayDurationMs(Number.NaN, 'normal')).toBe(MIN_DISPLAY_MS)
+    expect(displayDurationMs(5000, 'normal')).toBe(MAX_DISPLAY_MS)
+  })
+
+  it('slow is about two and a half times longer, at every size', () => {
+    for (const ms of [0.1, 4, 8, 500]) expect(displayDurationMs(ms, 'slow')).toBeCloseTo(displayDurationMs(ms, 'normal') * 2.5)
+  })
+
+  it('grows with the reported time between the limits', () => {
+    expect(displayDurationMs(6, 'normal')).toBeGreaterThan(displayDurationMs(4, 'normal'))
+  })
+})
+
+describe('duration normalisation', () => {
+  it('counts only reported time, so the viewer legs never change the duration', () => {
+    const t = buildTimeline(reached(), V)
+    expect(t.reportedMs).toBe(36)
+    const sum = t.segments.filter((s) => s.reported).reduce((a, s) => a + s.durationMs, 0)
+    expect(t.reportedMs).toBeCloseTo(sum)
+    expect(displayDurationMs(t.reportedMs, 'normal')).toBe(MAX_DISPLAY_MS)
+  })
+
+  it('keeps the proportions of the segments whatever the display time', () => {
+    const t = buildTimeline(trace(path(['http://a', 1, 2], ['http://b', 1])), V)
+    for (const speed of ['normal', 'slow'] as const) {
+      const display = t.segments.map((s) => s.durationMs / traceMsPerDisplayMs(t, speed))
+      expect(display.reduce((a, b) => a + b, 0)).toBeCloseTo(displayDurationMs(t.reportedMs, speed))
+      const reportedOnly = t.segments.flatMap((s, i) => (s.reported ? [display[i]] : []))
+      // dwell 1 ms : leg 1 ms : dwell 1 ms : leg 1 ms back, so all four equal; the viewer legs are 12% of the sum.
+      for (const d of reportedOnly) expect(d).toBeCloseTo(reportedOnly[0])
+    }
+    const dwell = t.segments.find((s) => s.kind === 'dwell')!
+    const leg = t.segments.find((s) => s.kind === 'transit' && s.reported)!
+    expect(dwell.durationMs / leg.durationMs).toBe(1)
+  })
+
+  it('a viewer leg is a small, fixed share of the axis', () => {
+    const t = buildTimeline(reached(), V)
+    const leg = t.segments[0].durationMs
+    expect(leg / t.totalMs).toBeLessThan(0.1)
+    expect(t.segments.at(-1)?.durationMs).toBe(leg)
+  })
+
+  it('falls back to the nominal viewer leg when nothing was reported', () => {
+    const t = buildTimeline(trace([hop('http://a', 0)]), V)
+    expect(t.reportedMs).toBe(0)
+    expect(t.segments[0].durationMs).toBe(NOMINAL_VIEWER_LEG_MS)
+    expect(displayDurationMs(t.reportedMs, 'normal')).toBe(MIN_DISPLAY_MS)
+  })
+
+  it('a stopped trace with a wait counts the wait too', () => {
+    const r = trace(path(['http://a', 2, 20], ['http://b', 3, 40]), { reached: false, stopped_reason: 'target_unreachable', target: 'http://c' })
+    expect(buildTimeline(r, V).reportedMs).toBe(2 + 10 + 3 + 40)
+  })
+})
+
+describe('activeHop', () => {
+  const t = buildTimeline(reached(), V)
+  const at = (ms: number) => activeHop(t, frameAt(t, ms))
+
+  it('is none while travelling to the entry node, then follows the hops out', () => {
+    expect(at(0)).toBeNull()
+    expect(at(LEG + 1)).toBe(0)
+    expect(at(LEG + 2 + 5)).toBe(0)
+    expect(at(LEG + 2 + 10 + 1)).toBe(1)
+    expect(at(LEG + 2 + 10 + 3 + 5 + 0.5)).toBe(2)
+  })
+
+  it('follows the packet back and ends on the last hop', () => {
+    const backStart = t.segments.find((s) => s.direction === 'back')!.startMs
+    expect(at(backStart + 0.1)).toBe(2)
+    expect(at(t.totalMs)).toBe(2)
+    expect(at(t.totalMs - 0.01)).toBe(0)
+  })
+
+  it('a stopped trace stays on its last hop, and nothing is active without a frame', () => {
+    const s = buildTimeline(stopped('no_route'), V)
+    expect(activeHop(s, frameAt(s, s.totalMs))).toBe(1)
+    expect(activeHop(t, null)).toBeNull()
+  })
+})
+
+describe('trailFrames', () => {
+  const t = buildTimeline(reached(), V)
+
+  it('has no tail at the start and grows behind the packet', () => {
+    expect(trailFrames(t, 0)).toEqual([])
+    const trail = trailFrames(t, t.totalMs / 2, 6)
+    expect(trail).toHaveLength(6)
+  })
+
+  it('is ordered newest first and reaches back a fixed fraction of the axis', () => {
+    const trail = trailFrames(t, t.totalMs / 2, 5, 0.1)
+    const times = trail.map((f) => t.segments[f.segment].startMs)
+    for (let i = 1; i < times.length; i++) expect(times[i]).toBeLessThanOrEqual(times[i - 1])
+    expect(trailFrames(t, 1, 5, 0.1).length).toBeLessThan(5)
+  })
+
+  it('is empty for an empty timeline', () => {
+    expect(trailFrames(buildTimeline(trace([]), V), 5)).toEqual([])
   })
 })

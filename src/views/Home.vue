@@ -29,6 +29,7 @@ import { useTweenedPositions } from '../composables/useTweenedPositions'
 import { useViewerRtt } from '../composables/useViewerRtt'
 import { useWorkspace } from '../composables/useWorkspace'
 import { describeFailure } from '../utils/describeFailure'
+import { onScreen } from '../utils/viewport'
 import { alertIssues, alertUrl, nodeIssues } from '../utils/issueItems'
 import { summaryStats } from '../utils/summaryStats'
 import { toolTabs } from '../utils/toolTabs'
@@ -58,7 +59,13 @@ const extras = useTopologyExtras({
   pulsesLive: computed(() => isLive.value && !timelapse.replaying.value),
 })
 const { seedUrl, refreshSeconds, walk, onFile, save } = useCrawlerForm(crawler, import.meta.env.VITE_AVALON_SEED_URL ?? '')
-const tracer = useTrace({ target: selected, defaultEntry: () => seedUrl.value })
+const tracer = useTrace({
+  target: selected,
+  defaultEntry: () => seedUrl.value,
+  positions: () => extras.drawing.value.positions,
+  scale: () => animated.view.value.scale,
+  onScreen: (p) => onScreen(animated.view.value, p, size.value),
+})
 
 const workspace = useWorkspace(() => merged.value !== null)
 const drawer = useSelectionDrawer(selected, detail)
@@ -164,12 +171,18 @@ function probeSecond() {
             v-if="merged"
             v-model:entry="tracer.entryInput.value"
             :entry-placeholder="seedUrl"
-            :target="selected"
+            :target="tracer.target.value"
+            :selected="selected"
+            :active-hop="tracer.hop.value"
             :loading="tracer.loading.value"
             :error="tracer.error.value"
             :summary="tracer.summary.value"
             :playback="tracer.playback.value"
+            @pick-entry="tracer.pickEntry"
+            @pick-target="tracer.pickTarget"
+            @swap="tracer.swap"
             @trace="tracer.trace"
+            @clear="tracer.clear"
             @replay="tracer.replay"
             @pause="tracer.togglePause"
             @speed="tracer.changeSpeed"
