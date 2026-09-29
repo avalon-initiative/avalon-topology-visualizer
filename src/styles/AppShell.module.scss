@@ -1,0 +1,73 @@
+// Full-viewport shell: bar on top, tools beside (or, on narrow screens, below) the map. No page scroll.
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.header {
+  flex: none;
+  border-bottom: 1px solid var(--av-color-border);
+  background: var(--av-color-surface);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.sidebar {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 20rem;
+  min-height: 0;
+  border-right: 1px solid var(--av-color-border);
+  background: var(--av-color-surface);
+}
+
+.main {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (min-width: 1024px) {
+  .sidebar {
+    width: 24rem;
+  }
+}
+
+@media (max-width: 1023px) {
+  .main {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 767px) {
+  .body {
+    flex-direction: column;
+  }
+
+  .main {
+    order: 1;
+  }
+
+  // The node sheet takes the room below the map, so the tools step aside while it is open.
+  .yields {
+    display: none;
+  }
+
+  .sidebar {
+    order: 2;
+    width: 100%;
+    height: 40dvh;
+    border-top: 1px solid var(--av-color-border);
+    border-right: 0;
+  }
+}

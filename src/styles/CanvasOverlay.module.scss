@@ -1,0 +1,58 @@
+// Floats over the map; only the controls and notices take pointer events, so the canvas stays draggable.
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.notices {
+  position: absolute;
+  top: var(--av-space-3);
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--av-space-2);
+  width: min(32rem, calc(100% - var(--av-space-6)));
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.corner {
+  position: absolute;
+  bottom: var(--av-space-3);
+  left: var(--av-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--av-space-2);
+  width: min(46rem, 60%);
+  max-height: 45%;
+}
+
+.legend {
+  flex: 0 1 auto;
+  min-height: 0;
+  padding: var(--av-space-2) var(--av-space-3);
+  overflow-y: auto;
+  border: 1px solid var(--av-color-border-strong);
+  border-radius: var(--av-radius-md);
+  background: var(--av-color-bg-translucent);
+  box-shadow: var(--av-shadow-card);
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--av-space-3);
+  pointer-events: auto;
+}
+
+@media (max-width: 767px) {
+  .corner {
+    width: calc(100% - var(--av-space-6));
+    max-height: 35%;
+  }
+}

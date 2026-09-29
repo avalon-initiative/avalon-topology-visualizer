@@ -3,8 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TopologyCanvas from '../src/components/TopologyCanvas.vue'
 
 const calls: string[] = []
+const transforms: unknown[][] = []
 const ctx = new Proxy({} as Record<string, unknown>, {
-  get: (_t, key: string) => (typeof key === 'string' && key !== 'then' ? (..._a: unknown[]) => calls.push(key) : undefined),
+  get: (_t, key: string) =>
+    typeof key === 'string' && key !== 'then'
+      ? (...a: unknown[]) => {
+          if (key === 'setTransform') transforms.push(a)
+          return calls.push(key)
+        }
+      : undefined,
   set: () => true,
 })
 
@@ -25,6 +32,7 @@ const fire = async (el: { element: Element }, type: string, x: number, y: number
 
 beforeEach(() => {
   calls.length = 0
+  transforms.length = 0
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx as never)
 })
 afterEach(() => vi.restoreAllMocks())
@@ -39,12 +47,39 @@ describe('TopologyCanvas', () => {
     expect(calls.filter((c) => c === 'clearRect')).toHaveLength(2)
   })
 
-  it('is sized to the given dimensions and described for assistive tech', () => {
-    const canvas = mount(TopologyCanvas, { props: props() }).find('canvas')
+  it('is sized to the given dimensions and described for assistive tech', async () => {
+    const wrapper = mount(TopologyCanvas, { props: props() })
+    await flushPromises()
+    const canvas = wrapper.find('canvas')
     expect(canvas.attributes('width')).toBe('400')
     expect(canvas.attributes('height')).toBe('300')
+    expect(canvas.attributes('style')).toContain('width: 400px')
     expect(canvas.attributes('role')).toBe('img')
     expect(canvas.attributes('aria-label')).toMatch(/pin/i)
+  })
+
+  it('resizes with its props and redraws at the new size', async () => {
+    const wrapper = mount(TopologyCanvas, { props: props() })
+    await flushPromises()
+    const before = calls.filter((c) => c === 'clearRect').length
+    await wrapper.setProps({ width: 640, height: 360 })
+    const canvas = wrapper.find('canvas')
+    expect(canvas.attributes('width')).toBe('640')
+    expect(canvas.attributes('height')).toBe('360')
+    expect(canvas.attributes('style')).toContain('height: 360px')
+    expect(calls.filter((c) => c === 'clearRect').length).toBe(before + 1)
+  })
+
+  it('draws crisply on a dense screen: a larger backing store at the same CSS size, scaled to match', async () => {
+    vi.stubGlobal('devicePixelRatio', 2)
+    const wrapper = mount(TopologyCanvas, { props: props() })
+    await flushPromises()
+    const canvas = wrapper.find('canvas')
+    expect(canvas.attributes('width')).toBe('800')
+    expect(canvas.attributes('height')).toBe('600')
+    expect(canvas.attributes('style')).toContain('width: 400px')
+    expect(transforms.at(-1)).toEqual([2, 0, 0, 2, 0, 0])
+    vi.unstubAllGlobals()
   })
 
   it('pins a node at the dragged world position', async () => {

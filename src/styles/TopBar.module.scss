@@ -1,0 +1,141 @@
+.bar {
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--av-space-2) var(--av-space-4);
+  padding: var(--av-space-2) var(--av-space-4);
+}
+
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--av-space-1) var(--av-space-6);
+  padding: var(--av-space-1) var(--av-space-4);
+  border-top: 1px solid var(--av-color-border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--av-space-3);
+}
+
+.controlsToggle {
+  display: none;
+}
+
+.title {
+  font-size: var(--av-text-md);
+  white-space: nowrap;
+}
+
+.form {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--av-space-2) var(--av-space-3);
+  min-width: 0;
+}
+
+.seed {
+  flex: 1 1 14rem;
+  max-width: 18rem;
+}
+
+.refresh {
+  flex: 0 1 9rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--av-space-3);
+  padding-bottom: var(--av-space-2);
+}
+
+.file {
+  cursor: pointer;
+  font-size: var(--av-text-sm);
+  color: var(--av-color-primary);
+}
+
+.fileInput {
+  display: none;
+}
+
+.status {
+  flex: none;
+  font-size: var(--av-text-xs);
+  color: var(--av-color-text-secondary);
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--av-space-1) var(--av-space-4);
+  margin: 0;
+}
+
+.stat {
+  display: flex;
+  align-items: baseline;
+  gap: var(--av-space-2);
+  font-size: var(--av-text-sm);
+
+  dt {
+    color: var(--av-color-text-secondary);
+  }
+
+  dd {
+    margin: 0;
+    font-family: var(--av-font-mono);
+    font-weight: 600;
+  }
+}
+
+@media (max-width: 767px) {
+  .title {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--av-text-base);
+    white-space: normal;
+  }
+
+  .controlsToggle {
+    display: block;
+  }
+
+  .folded {
+    display: none;
+  }
+
+  .brand {
+    flex: 1 1 100%;
+  }
+
+  .seed {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .refresh {
+    flex: 0 0 8rem;
+  }
+
+  .strip {
+    justify-content: flex-start;
+  }
+
+  .stat {
+    flex: none;
+  }
+}

@@ -5,12 +5,11 @@ import type { Layout, LayoutLink, Point } from '../utils/layout'
 import { toLayoutInput } from '../utils/layoutInput'
 import type { MergedGraph } from '../utils/mergeGraph'
 import { fitView, scaleBar } from '../utils/viewport'
+import { INITIAL_SIZE } from './useElementSize'
+import type { Size } from './useElementSize'
 
-export const CANVAS_WIDTH = 720
-export const CANVAS_HEIGHT = 480
-
-/** Lays out the merged graph, warm-starting each refresh from the last layout and honouring pins. */
-export function useLayout(merged: Ref<MergedGraph | null>, extraLinks?: Ref<LayoutLink[]>) {
+/** Lays out the merged graph (independent of the canvas size, which only fits the view), warm-starting each refresh from the last layout and honouring pins. */
+export function useLayout(merged: Ref<MergedGraph | null>, extraLinks?: Ref<LayoutLink[]>, size: Ref<Size> = shallowRef(INITIAL_SIZE)) {
   const layout = shallowRef<Layout | null>(null)
   const pins = shallowRef<Record<string, Point>>({})
 
@@ -35,7 +34,7 @@ export function useLayout(merged: Ref<MergedGraph | null>, extraLinks?: Ref<Layo
     recompute()
   }
 
-  const view = computed(() => fitView(layout.value?.positions ?? {}, CANVAS_WIDTH, CANVAS_HEIGHT))
+  const view = computed(() => fitView(layout.value?.positions ?? {}, size.value.width, size.value.height))
   const bar = computed(() => (layout.value ? scaleBar(layout.value.pxPerMs, view.value) : { px: 0, ms: 0 }))
   const pinned = computed(() => new Set(Object.keys(pins.value)))
 

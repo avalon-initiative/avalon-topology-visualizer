@@ -1,52 +1,23 @@
-.page {
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: var(--av-space-8) var(--av-space-4);
+.stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--av-color-surface);
 }
 
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--av-space-3);
-  margin-bottom: var(--av-space-4);
+.empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(28rem, calc(100% - var(--av-space-8)));
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: var(--av-color-text-secondary);
 }
 
-.summary {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: var(--av-space-2) var(--av-space-4);
-  margin: 0;
-
-  dt {
-    color: var(--av-color-text-secondary);
-  }
-
-  dd {
-    margin: 0;
-    font-family: var(--av-font-mono);
-  }
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--av-space-3);
-}
-
-.file {
-  cursor: pointer;
-  font-size: var(--av-text-sm);
-  color: var(--av-color-primary);
-}
-
-.fileInput {
-  display: none;
-}
-
-.progress,
-.source {
-  margin: var(--av-space-3) 0;
+.note {
   font-size: var(--av-text-sm);
   color: var(--av-color-text-secondary);
 }

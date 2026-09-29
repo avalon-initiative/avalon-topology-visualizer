@@ -1,5 +1,5 @@
-import { computed, onScopeDispose, shallowRef, watch } from 'vue'
-import type { Ref } from 'vue'
+import { computed, onScopeDispose, shallowRef, toValue, watch } from 'vue'
+import type { MaybeRefOrGetter, Ref } from 'vue'
 import type { Point } from '../utils/layout'
 import { interpolatePositions } from '../utils/tween'
 import { fitView } from '../utils/viewport'
@@ -13,8 +13,8 @@ export const TWEEN_MS = 600
 export function useTweenedPositions(
   target: Ref<Record<string, Point> | undefined>,
   animate: Ref<boolean>,
-  width: number,
-  height: number,
+  width: MaybeRefOrGetter<number>,
+  height: MaybeRefOrGetter<number>,
   durationMs = TWEEN_MS,
 ) {
   const positions = shallowRef<Record<string, Point>>(target.value ?? {})
@@ -48,6 +48,6 @@ export function useTweenedPositions(
 
   onScopeDispose(cancel)
 
-  const view = computed(() => fitView(positions.value, width, height))
+  const view = computed(() => fitView(positions.value, toValue(width), toValue(height)))
   return { positions, view }
 }
