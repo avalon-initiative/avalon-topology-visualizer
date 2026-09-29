@@ -26,6 +26,12 @@ export function fitView(positions: Record<string, Point>, width: number, height:
 export const toScreen = (view: View, p: Point): Point => ({ x: p.x * view.scale + view.tx, y: p.y * view.scale + view.ty })
 export const toWorld = (view: View, p: Point): Point => ({ x: (p.x - view.tx) / view.scale, y: (p.y - view.ty) / view.scale })
 
+/** Whether a world point lands inside the canvas, keeping `marginPx` clear of every edge (room for a label below it). */
+export function onScreen(view: View, p: Point, size: { width: number; height: number }, marginPx = 40): boolean {
+  const s = toScreen(view, p)
+  return s.x >= marginPx && s.x <= size.width - marginPx && s.y >= marginPx && s.y <= size.height - marginPx - 20
+}
+
 /** The node under a screen point, nearest first, or undefined. */
 export function nodeAt(positions: Record<string, Point>, view: View, point: Point, radiusPx = 12): string | undefined {
   let best: string | undefined

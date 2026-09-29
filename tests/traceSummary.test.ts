@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { describeOutcome, SELF_REPORTED_NOTE, summarizeTrace } from '../src/utils/traceSummary'
+import { describeOutcome, hopLabel, SELF_REPORTED_NOTE, summarizeTrace } from '../src/utils/traceSummary'
 import { hop, path, reached, stopped, trace } from './traces'
 
 describe('summarizeTrace', () => {
@@ -72,5 +72,17 @@ describe('self-reported note', () => {
   it('says the hops are reported by the nodes themselves', () => {
     expect(SELF_REPORTED_NOTE).toMatch(/reported by the node it names/)
     expect(SELF_REPORTED_NOTE).toMatch(/not verified/)
+  })
+})
+
+describe('hopLabel', () => {
+  it('shows processing and forward time for a middle hop, and processing alone at the end', () => {
+    const rows = summarizeTrace(reached()).rows
+    expect(hopLabel(rows[0])).toBe('proc 2.0 ms · fwd 20 ms')
+    expect(hopLabel(rows[2])).toBe('proc 1.0 ms')
+  })
+
+  it('numbers hops by their order in the returned path', () => {
+    expect(summarizeTrace(reached()).rows.map((r) => [r.index + 1, r.url])).toEqual([[1, 'http://a'], [2, 'http://b'], [3, 'http://c']])
   })
 })

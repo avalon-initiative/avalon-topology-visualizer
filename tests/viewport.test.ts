@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fitView, MAX_FIT_SCALE, nodeAt, scaleBar, toScreen, toWorld } from '../src/utils/viewport'
+import { fitView, MAX_FIT_SCALE, nodeAt, onScreen, scaleBar, toScreen, toWorld } from '../src/utils/viewport'
 
 describe('fitView', () => {
   it('zooms a tight layout in to fill the canvas and centres it', () => {
@@ -86,5 +86,23 @@ describe('scaleBar', () => {
 
   it('shows nothing for a degenerate scale', () => {
     expect(scaleBar(0, { scale: 1, tx: 0, ty: 0 })).toEqual({ px: 0, ms: 0 })
+  })
+})
+
+describe('onScreen', () => {
+  const view = { scale: 2, tx: 10, ty: 10 }
+  const size = { width: 400, height: 300 }
+
+  it('accepts points inside the canvas and rejects those near or past an edge', () => {
+    expect(onScreen(view, { x: 100, y: 50 }, size)).toBe(true)
+    expect(onScreen(view, { x: 0, y: 50 }, size)).toBe(false)
+    expect(onScreen(view, { x: 100, y: 0 }, size)).toBe(false)
+    expect(onScreen(view, { x: 190, y: 50 }, size)).toBe(false)
+    expect(onScreen(view, { x: 100, y: 140 }, size)).toBe(false)
+  })
+
+  it('keeps extra room under the point for a label', () => {
+    expect(onScreen(view, { x: 100, y: 100 }, size)).toBe(true)
+    expect(onScreen(view, { x: 100, y: 118 }, size)).toBe(false)
   })
 })
