@@ -12,6 +12,10 @@ describe('GraphLegend', () => {
     for (const i of items) expect(wrapper.text()).toContain(i.label)
   })
 
+  it('is a section named Legend', () => {
+    expect(wrapper.get('[aria-label="Legend"]').element.tagName).toBe('SECTION')
+  })
+
   it('draws a mark next to every entry', () => {
     expect(wrapper.findAll('li')).toHaveLength(items.length)
     expect(wrapper.findAll('li').every((li) => li.find('svg').exists())).toBe(true)

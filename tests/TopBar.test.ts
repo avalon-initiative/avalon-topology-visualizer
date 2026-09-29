@@ -67,4 +67,10 @@ describe('TopBar', () => {
     await box.setValue(false)
     expect(w.emitted('toggleMotion')).toHaveLength(1)
   })
+
+  it('uses the compact switch and still shows On/Off', () => {
+    const w = mount(TopBar, { props: props({ reducedMotion: true }) })
+    expect(w.get('[data-testid="motion-toggle"]').classes().join(' ')).toMatch(/compact/)
+    expect(w.get('[data-testid="motion-toggle"] [data-testid="switch-state"]').text()).toBe('On')
+  })
 })

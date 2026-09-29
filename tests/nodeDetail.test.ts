@@ -46,6 +46,14 @@ describe('nodeDetailRows', () => {
     expect(link).toContain('14.0 ms seen by http://b')
   })
 
+  it('gives each link row a stable id so rows with repeating labels never collide', () => {
+    const rows = rowsFor('http://a', [visited('http://a'), visited('http://b'), visited('http://c')], [edge('http://a', 'http://b'), edge('http://c', 'http://a')])
+    const ids = rows.filter((r) => r.label.startsWith('Link to')).map((r) => r.id)
+    expect(ids).toHaveLength(2)
+    expect(new Set(ids).size).toBe(2)
+    expect(ids.every((id) => id?.startsWith('link:'))).toBe(true)
+  })
+
   it('flags a link the two ends disagree about', () => {
     const rows = rowsFor('http://a', [visited('http://a'), visited('http://b')], [edge('http://a', 'http://b', 'active'), edge('http://b', 'http://a', 'known')])
     expect(value(rows, 'Link to http://b')).toContain('the two ends disagree')

@@ -3,11 +3,12 @@ import { toggleValue } from './filters'
 import type { FilterFacet, Filters } from './filters'
 import { shortValue } from './shortValue'
 
-export const FACETS: { key: FilterFacet; label: string }[] = [
-  { key: 'roles', label: 'Role' },
-  { key: 'networkIds', label: 'Network' },
-  { key: 'versions', label: 'Version' },
-  { key: 'shards', label: 'Shard' },
+/** `selectAll` marks the facets that can hold many values, where ticking every match at once helps. */
+export const FACETS: { key: FilterFacet; label: string; selectAll: boolean }[] = [
+  { key: 'roles', label: 'Role', selectAll: false },
+  { key: 'networkIds', label: 'Network', selectAll: false },
+  { key: 'versions', label: 'Version', selectAll: true },
+  { key: 'shards', label: 'Shard', selectAll: true },
 ]
 
 /** A facet's values as multi-select options; a long value gets a shortened label and keeps the full value as its tooltip. */

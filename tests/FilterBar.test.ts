@@ -26,6 +26,23 @@ describe('FilterBar', () => {
     expect(w.emitted('facet')).toEqual([['roles', ['combined', 'gateway']]])
   })
 
+  it('hides the search label visually but keeps the accessible name', () => {
+    const w = make()
+    const input = w.get('input[type="text"]')
+    expect(input.element.closest('label')!.textContent).toContain('Search by URL')
+    expect(w.get('label span').classes().join(' ')).toMatch(/srOnly/)
+  })
+
+  it('offers select all on the many-value facets only', () => {
+    const w = make({ options: { ...options, versions: ['0.1.0', '0.1.1'] } })
+    const facets = w.findAll('button[aria-haspopup]').map((t) => t.element.parentElement!)
+    const has = (name: string) => [...facets.find((f) => f.textContent!.startsWith(name))!.querySelectorAll('button')].some((b) => b.textContent === 'Select all')
+    expect(has('Role')).toBe(false)
+    expect(has('Network')).toBe(false)
+    expect(has('Version')).toBe(true)
+    expect(has('Shard')).toBe(true)
+  })
+
   it('emits the search text as it is typed', async () => {
     const w = make()
     await w.get('input[type="text"]').setValue('gw')
@@ -39,6 +56,7 @@ describe('FilterBar', () => {
     expect(chips[0].text()).toContain('Role: combined')
     expect(chips[2].find('[title]').attributes('title')).toBe(`Shard: ${shard}`)
     expect(chips[3].text()).toContain('URL: gw')
+    expect(w.get('[data-testid="filter-chips"]').attributes('aria-label')).toBe('Active filters')
     await chips[1].get('button').trigger('click')
     expect(w.emitted('removeChip')![0][0]).toMatchObject({ id: 'roles:gateway', facet: 'roles', value: 'gateway' })
   })
@@ -54,6 +72,16 @@ describe('FilterBar', () => {
     expect(w.get('[role="status"]').text()).toBe('Showing 1 of 5 nodes')
     await w.findAll('button').find((b) => b.text() === 'Clear filters')!.trigger('click')
     expect(w.emitted('clear')).toHaveLength(1)
+  })
+
+  it('keeps the compact hide switch readable to assistive tech without visible On/Off', () => {
+    const w = make({ mode: 'hide' })
+    const toggle = w.get('[data-testid="hide-toggle"]')
+    expect(toggle.classes().join(' ')).toMatch(/compact/)
+    const state = toggle.get('[data-testid="switch-state"]')
+    expect(state.text()).toBe('On')
+    expect(state.classes().join(' ')).toMatch(/srOnly/)
+    expect(toggle.text()).toContain('Non-matching nodes are removed from the map.')
   })
 
   it('has a hide switch that describes the current setting and emits the mode', async () => {

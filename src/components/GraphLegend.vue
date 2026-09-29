@@ -8,7 +8,7 @@ const glyphs = glyphsById()
 </script>
 
 <template>
-  <AvalonLegend :groups="groups" aria-label="Legend">
+  <AvalonLegend :groups="groups" label="Legend">
     <template #glyph="{ item }">
       <template v-for="glyph in [glyphs[item.id ?? '']]" :key="glyph.type">
         <svg v-if="glyph.type === 'link'" :class="styles.glyph" viewBox="0 0 40 16" width="40" height="16" aria-hidden="true">

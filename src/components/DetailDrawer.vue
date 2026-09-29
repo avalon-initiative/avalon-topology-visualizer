@@ -21,13 +21,13 @@ const issues = computed(() => alertIssues(props.alerts))
 </script>
 
 <template>
-  <AvalonDrawer :open="open" title="Node details" close-label="Close node details" :reduced-motion="reduced" @close="$emit('close')">
+  <AvalonDrawer :open="open" title="Node details" close-label="Close node details" :reduced-motion="reduced" data-testid="detail-drawer" @close="$emit('close')">
     <template #actions>
       <AvalonButton label="Trace to this node" @click="$emit('trace')" />
       <AvalonButton label="Use as probe first" variant="secondary" :disabled="!canFirst" @click="$emit('probeFirst')" />
       <AvalonButton label="Use as probe second" variant="secondary" :disabled="!canSecond" @click="$emit('probeSecond')" />
     </template>
-    <AvalonDetailList :title="title" :items="rows" aria-label="Selected node" />
+    <AvalonDetailList :title="title" :items="rows" label="Selected node" />
     <AvalonIssueList title="Alerts" label="Alerts" :items="issues" data-testid="alerts" />
   </AvalonDrawer>
 </template>

@@ -18,16 +18,18 @@ const buttons = (w: ReturnType<typeof mount>) => Object.fromEntries(w.findAll('b
 
 describe('DetailDrawer', () => {
   it('renders nothing while closed', () => {
-    expect(mount(DetailDrawer, { props: props({ open: false }) }).find('aside[aria-label="Node details"]').exists()).toBe(false)
+    expect(mount(DetailDrawer, { props: props({ open: false }) }).find('[data-testid="detail-drawer"]').exists()).toBe(false)
   })
 
   it('is a labelled landmark showing the node title and rows', () => {
     const w = mount(DetailDrawer, { props: props() })
-    const drawer = w.get('aside[aria-label="Node details"]')
+    const drawer = w.get('[data-testid="detail-drawer"]')
+    expect(drawer.element.tagName).toBe('ASIDE')
     expect(drawer.attributes('role')).toBe('complementary')
+    expect(drawer.attributes('aria-label')).toBe('Node details')
     expect(drawer.text()).toContain('http://a')
     expect(drawer.text()).toContain('visited')
-    expect(w.get('[aria-label="Selected node"]').text()).toContain('http://a')
+    expect(w.get('section[aria-label="Selected node"]').text()).toContain('http://a')
   })
 
   it('has a labelled close button that asks to close', async () => {

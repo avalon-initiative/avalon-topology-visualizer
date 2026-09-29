@@ -59,6 +59,12 @@ describe('filterChips', () => {
   })
 })
 
+describe('facet select-all', () => {
+  it('is offered only on the facets that can hold many values', () => {
+    expect(FACETS.filter((x) => x.selectAll).map((x) => x.key)).toEqual(['versions', 'shards'])
+  })
+})
+
 describe('withoutChip', () => {
   const filters = f({ roles: ['a', 'b'], shards: [shard], search: 'gw' })
   const chip = (id: string) => filterChips(filters).find((c) => c.id === id)!

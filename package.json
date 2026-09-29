@@ -12,7 +12,7 @@
     "test": "NODE_OPTIONS=--no-experimental-webstorage vitest run"
   },
   "dependencies": {
-    "@avalon-initiative/common-ui": "0.1.0",
+    "@avalon-initiative/common-ui": "0.1.1",
     "@avalon-initiative/protocol-sdk": "0.1.4",
     "d3-force": "3.0.0",
     "vue": "^3.5.43"

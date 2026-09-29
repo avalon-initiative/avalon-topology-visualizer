@@ -117,7 +117,7 @@ describe('Home layout', () => {
   })
 
   describe('detail drawer', () => {
-    const drawer = (w: ReturnType<typeof mount>) => w.find('aside[aria-label="Node details"]')
+    const drawer = (w: ReturnType<typeof mount>) => w.find('[data-testid="detail-drawer"]')
 
     it('opens with the selected node facts and closes when the selection clears', async () => {
       const w = await walked()

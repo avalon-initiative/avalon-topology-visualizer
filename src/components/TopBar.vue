@@ -70,6 +70,7 @@ defineEmits<{ walk: []; stop: []; save: []; file: [event: Event]; toggleTools: [
         <AvalonToggleSwitch
           :model-value="reducedMotion"
           label="Reduce motion"
+          compact
           title="Changes show as static markers instead of pulses."
           data-testid="motion-toggle"
           @update:model-value="$emit('toggleMotion')"
