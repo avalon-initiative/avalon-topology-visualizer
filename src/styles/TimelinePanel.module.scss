@@ -62,15 +62,39 @@
 }
 
 .tick {
-  min-width: 2rem;
-  padding: var(--av-space-1) var(--av-space-2);
-  font-family: var(--av-font-mono);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 4.5rem;
+  padding: var(--av-space-2);
   font-size: var(--av-text-xs);
   color: var(--av-color-text-secondary);
   background: var(--av-color-surface);
   border: 1px solid var(--av-color-border);
   border-radius: var(--av-radius-sm);
   cursor: pointer;
+
+  &:hover {
+    border-color: var(--av-color-primary);
+  }
+}
+
+.number {
+  font-size: var(--av-text-base);
+  font-weight: 700;
+  color: var(--av-color-text);
+}
+
+.time {
+  font-family: var(--av-font-mono);
+}
+
+.latest {
+  font-size: var(--av-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--av-color-primary);
 }
 
 .joined {
@@ -88,6 +112,7 @@
 
 .current {
   color: var(--av-color-primary);
+  background: var(--av-color-surface-raised);
   border-color: var(--av-color-primary);
   border-width: 2px;
 }

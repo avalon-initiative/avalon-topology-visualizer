@@ -16,6 +16,8 @@ defineProps<{
 defineEmits<{ seek: [index: number]; step: [by: number]; live: []; play: []; pause: []; export: []; clear: []; importFile: [event: Event] }>()
 
 const when = (iso: string) => new Date(iso).toLocaleString()
+const clock = (iso: string) => new Date(iso).toLocaleTimeString()
+const change = (m: TimelineMarker) => m.label || (m.index === 0 ? 'first' : 'no change')
 </script>
 
 <template>
@@ -48,6 +50,7 @@ const when = (iso: string) => new Date(iso).toLocaleString()
         :value="index ?? markers.length - 1"
         @input="$emit('seek', Number(($event.target as HTMLInputElement).value))"
       />
+      <p :class="styles.key">Each refresh saves a snapshot. Click one to see the network as it was.</p>
       <ol :class="styles.ticks" data-testid="timeline-ticks">
         <li v-for="m in markers" :key="m.index">
           <button
@@ -55,9 +58,13 @@ const when = (iso: string) => new Date(iso).toLocaleString()
             :class="[styles.tick, m.index === index && styles.current, m.joined > 0 && styles.joined, m.departed > 0 && styles.departed, m.versionChanges > 0 && styles.changed]"
             :title="`${when(m.takenAt)}${m.label ? ` (${m.label})` : ''}`"
             :aria-label="`Snapshot ${m.index + 1}, ${when(m.takenAt)}${m.label ? `, ${m.joined} joined, ${m.departed} departed, ${m.versionChanges} version changes` : ''}`"
+            :aria-current="m.index === index ? 'true' : undefined"
             @click="$emit('seek', m.index)"
           >
-            <span :class="styles.mark" data-testid="tick-label">{{ m.label || '.' }}</span>
+            <span :class="styles.number" data-testid="tick-number">{{ m.index + 1 }}</span>
+            <span :class="styles.time">{{ clock(m.takenAt) }}</span>
+            <span :class="styles.mark" data-testid="tick-label">{{ change(m) }}</span>
+            <span v-if="m.index === markers.length - 1" :class="styles.latest">latest</span>
           </button>
         </li>
       </ol>

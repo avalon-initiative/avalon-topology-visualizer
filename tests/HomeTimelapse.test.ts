@@ -50,7 +50,7 @@ describe('Home time-lapse', () => {
     await walk(wrapper, one)
     await walk(wrapper, two)
     const ticks = wrapper.findAll('[data-testid="tick-label"]').map((t) => t.text())
-    expect(ticks).toEqual(['.', '+1'])
+    expect(ticks).toEqual(['first', '+1'])
     expect(wrapper.find('[data-testid="timeline-mode"]').text()).toMatch(/^Live/)
     expect(visitedCount(wrapper)).toBe('2')
 
