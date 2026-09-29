@@ -21,6 +21,10 @@ const geometry = (glyph: NodeGlyph) => glyphGeometry(glyph)
               <polygon points="26,8 17,4 17,12" :class="styles.arrow" />
             </template>
           </svg>
+          <svg v-else-if="item.glyph.type === 'pulse'" :class="styles.glyph" viewBox="0 0 40 16" width="40" height="16" aria-hidden="true">
+            <line x1="2" y1="8" x2="38" y2="8" :class="styles.active" />
+            <circle cx="20" cy="8" r="3.5" :class="styles.pulse" />
+          </svg>
           <svg v-else :class="styles.glyph" viewBox="-16 -16 32 32" width="32" height="32" aria-hidden="true">
             <g :class="item.glyph.dimmed ? styles.dimmed : ''">
               <polygon v-if="geometry(item.glyph).points" :points="geometry(item.glyph).points ?? ''" :class="item.glyph.hollow ? styles.hollow : styles.solid" />
@@ -29,6 +33,10 @@ const geometry = (glyph: NodeGlyph) => glyphGeometry(glyph)
             </g>
             <path v-if="geometry(item.glyph).lagArc" :d="geometry(item.glyph).lagArc ?? ''" :class="styles.lag" />
             <circle v-if="item.glyph.pinned" cx="0" cy="0" r="14" :class="styles.pin" />
+            <template v-if="item.glyph.alert">
+              <circle cx="9" cy="-9" r="6" :class="item.glyph.alert === 'equivocation' ? styles.badgeDanger : styles.badgeWarning" />
+              <text x="9" y="-9" text-anchor="middle" dominant-baseline="central" :class="styles.badgeText">{{ item.glyph.alert === 'equivocation' ? '!' : 'S' }}</text>
+            </template>
           </svg>
           <span>{{ item.label }}</span>
         </li>

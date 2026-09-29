@@ -3,9 +3,12 @@ import { shapePoints } from './shapes'
 import { VIEWER_ID, VIEWER_LABEL } from './rttStats'
 import { drawTrace } from './drawTrace'
 import type { TraceDrawing } from './drawTrace'
+import { linkKey } from './pulses'
+import type { PulseDrawing } from './pulses'
 import { toScreen } from './viewport'
 import type { View } from './viewport'
 import type { LinkStyle, NodeStyle } from './styleGraph'
+import type { AlertKind } from './alerts'
 
 export interface DrawTheme {
   link: string
@@ -18,6 +21,8 @@ export interface DrawTheme {
   danger: string
   success: string
   muted: string
+  /** Letter colour on alert badges. */
+  badgeText: string
 }
 
 export const DEFAULT_THEME: DrawTheme = {
@@ -31,6 +36,7 @@ export const DEFAULT_THEME: DrawTheme = {
   danger: '#f26d78',
   success: '#2ecc71',
   muted: '#94a3b8',
+  badgeText: '#0b1220',
 }
 
 export interface DrawInput {
@@ -46,6 +52,7 @@ export interface DrawInput {
   height: number
   theme?: DrawTheme
   trace?: TraceDrawing
+  pulse?: PulseDrawing
 }
 
 export const NODE_DRAW_RADIUS = 7
@@ -57,6 +64,9 @@ const MIRROR_OFFSET_PX = 3
 const ARROW_LENGTH_PX = 9
 const DIMMED_ALPHA = 0.4
 const LINK_LABEL_OFFSET_PX = 4
+const FADED_ALPHA = 0.15
+const BADGE_RADIUS = 6
+const BADGE_TEXT: Record<AlertKind, string> = { equivocation: '!', stale: 'S' }
 
 export function nodeLabel(id: string): string {
   if (id === VIEWER_ID) return VIEWER_LABEL
@@ -69,7 +79,7 @@ export function nodeLabel(id: string): string {
 
 function drawLink(ctx: CanvasRenderingContext2D, style: LinkStyle, a: Point, b: Point, theme: DrawTheme) {
   ctx.save()
-  ctx.globalAlpha = style.alpha
+  ctx.globalAlpha = style.faded ? Math.min(style.alpha, FADED_ALPHA) : style.alpha
   ctx.lineWidth = style.width
   ctx.strokeStyle = style.kind === 'mirror' ? theme.mirror : theme.link
   ctx.setLineDash(style.kind === 'known' ? [4, 4] : [])
@@ -123,7 +133,7 @@ function ring(ctx: CanvasRenderingContext2D, at: Point, radius: number, color: s
 
 function drawNode(ctx: CanvasRenderingContext2D, id: string, at: Point, style: NodeStyle | undefined, theme: DrawTheme) {
   ctx.save()
-  ctx.globalAlpha = style?.dimmed ? DIMMED_ALPHA : 1
+  ctx.globalAlpha = style?.faded ? FADED_ALPHA : style?.dimmed ? DIMMED_ALPHA : 1
   tracePath(ctx, at, style)
   ctx.fillStyle = theme.node
   ctx.strokeStyle = theme.node
@@ -145,6 +155,44 @@ function drawNode(ctx: CanvasRenderingContext2D, id: string, at: Point, style: N
   ctx.restore()
 }
 
+/** A lettered badge per open alert at the node's upper right; the letter, not only the colour, says which. */
+function drawAlertBadges(ctx: CanvasRenderingContext2D, at: Point, alerts: AlertKind[], theme: DrawTheme) {
+  ctx.save()
+  alerts.forEach((kind, i) => {
+    const [x, y] = [at.x + NODE_DRAW_RADIUS + 4 + i * (BADGE_RADIUS * 2 + 2), at.y - NODE_DRAW_RADIUS - 4]
+    ctx.beginPath()
+    ctx.arc(x, y, BADGE_RADIUS, 0, Math.PI * 2)
+    ctx.fillStyle = kind === 'equivocation' ? theme.danger : theme.warning
+    ctx.fill()
+    ctx.fillStyle = theme.badgeText
+    ctx.textBaseline = 'middle'
+    ctx.fillText(BADGE_TEXT[kind], x, y + 0.5)
+  })
+  ctx.restore()
+}
+
+/** A pulse on a link: a dot travelling along it and fading, or, with no progress, a static heavier line. */
+function drawPulse(ctx: CanvasRenderingContext2D, a: Point, b: Point, progress: number | null, theme: DrawTheme) {
+  ctx.save()
+  ctx.strokeStyle = theme.success
+  ctx.fillStyle = theme.success
+  if (progress === null) {
+    ctx.globalAlpha = 0.7
+    ctx.lineWidth = 3
+    ctx.setLineDash([6, 3])
+    ctx.beginPath()
+    ctx.moveTo(a.x, a.y)
+    ctx.lineTo(b.x, b.y)
+    ctx.stroke()
+  } else {
+    ctx.globalAlpha = 1 - progress
+    ctx.beginPath()
+    ctx.arc(a.x + (b.x - a.x) * progress, a.y + (b.y - a.y) * progress, 3.5, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.restore()
+}
+
 export function drawGraph(ctx: CanvasRenderingContext2D, input: DrawInput): void {
   const { positions, pinned, view, width, height, selected } = input
   const theme = input.theme ?? DEFAULT_THEME
@@ -156,12 +204,23 @@ export function drawGraph(ctx: CanvasRenderingContext2D, input: DrawInput): void
     const b = positions[link.b]
     if (a && b) drawLink(ctx, link, toScreen(view, a), toScreen(view, b), theme)
   }
+  if (input.pulse) {
+    const done = new Set<string>()
+    for (const link of links) {
+      const key = linkKey(link.a, link.b)
+      const [a, b] = [positions[link.a], positions[link.b]]
+      if (!a || !b || link.faded || done.has(key) || !input.pulse.keys.has(key)) continue
+      done.add(key)
+      drawPulse(ctx, toScreen(view, a), toScreen(view, b), input.pulse.progress, theme)
+    }
+  }
 
   ctx.font = '11px sans-serif'
   ctx.textAlign = 'center'
   for (const [id, p] of Object.entries(positions)) {
     const at = toScreen(view, p)
     drawNode(ctx, id, at, input.nodeStyles?.[id], theme)
+    if (input.nodeStyles?.[id]?.alerts?.length) drawAlertBadges(ctx, at, input.nodeStyles[id].alerts ?? [], theme)
     if (pinned.has(id)) ring(ctx, at, NODE_DRAW_RADIUS + PIN_RING_OFFSET, theme.pinned, 2.5, [])
     if (id === selected) ring(ctx, at, NODE_DRAW_RADIUS + SELECT_RING_OFFSET, theme.label, 1.5, [])
   }

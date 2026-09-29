@@ -38,5 +38,5 @@ export function useViewerRtt(merged: Ref<MergedGraph | null>, options: Partial<P
 
   onScopeDispose(() => prober.stop())
 
-  return { running, summaries, ranking, links, drawLinks, toggle, viewerId: VIEWER_ID }
+  return { running, book, summaries, ranking, links, drawLinks, toggle, viewerId: VIEWER_ID }
 }

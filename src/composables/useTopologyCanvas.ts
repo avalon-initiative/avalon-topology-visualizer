@@ -4,6 +4,7 @@ import { DEFAULT_THEME, drawGraph } from '../utils/drawGraph'
 import type { DrawTheme } from '../utils/drawGraph'
 import type { TraceDrawing } from '../utils/drawTrace'
 import type { Point } from '../utils/layout'
+import type { PulseDrawing } from '../utils/pulses'
 import type { LinkStyle, NodeStyle } from '../utils/styleGraph'
 import { nodeAt, toWorld } from '../utils/viewport'
 import type { View } from '../utils/viewport'
@@ -21,6 +22,7 @@ export interface TopologyCanvasSources {
   selected: () => string | undefined
   view: () => View
   trace?: () => TraceDrawing | undefined
+  pulse?: () => PulseDrawing | undefined
   width: number
   height: number
   onPin: (id: string, at: Point) => void
@@ -42,6 +44,7 @@ function readTheme(): DrawTheme {
     danger: pick('--av-color-danger', DEFAULT_THEME.danger),
     success: pick('--av-color-success', DEFAULT_THEME.success),
     muted: pick('--av-color-text-muted', DEFAULT_THEME.muted),
+    badgeText: pick('--av-color-bg', DEFAULT_THEME.badgeText),
   }
 }
 
@@ -66,6 +69,7 @@ export function useTopologyCanvas(s: TopologyCanvasSources) {
       selected: s.selected(),
       view: s.view(),
       trace: s.trace?.(),
+      pulse: s.pulse?.(),
       width: s.width,
       height: s.height,
       theme,

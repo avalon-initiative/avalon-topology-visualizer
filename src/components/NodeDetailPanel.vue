@@ -9,9 +9,9 @@ defineProps<{ title: string; rows: DetailRow[] }>()
   <section :class="styles.panel" aria-label="Selected node">
     <h3 :class="styles.title">{{ title }}</h3>
     <dl :class="styles.list">
-      <div v-for="row in rows" :key="row.label" :class="styles.row">
+      <div v-for="row in rows" :key="row.label" :class="[styles.row, row.block ? styles.blockRow : '']">
         <dt :class="styles.label">{{ row.label }}</dt>
-        <dd :class="[styles.value, row.mono ? styles.mono : '']">{{ row.value }}</dd>
+        <dd :class="[styles.value, row.mono ? styles.mono : '', row.block ? styles.block : '']">{{ row.value }}</dd>
       </div>
     </dl>
   </section>

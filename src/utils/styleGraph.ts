@@ -1,3 +1,4 @@
+import type { AlertKind } from './alerts'
 import type { MergedLink } from './mergeGraph'
 import type { NodeFacts, VersionState } from './nodeFacts'
 import { shapeForRoles } from './shapes'
@@ -12,6 +13,10 @@ export interface NodeStyle {
   version: VersionState
   /** Sync-lag arc, 0 to 1 of a full turn; 0 means caught up or unknown. */
   lag: number
+  /** Filtered out: drawn faint. */
+  faded?: boolean
+  /** Open alerts on this node, drawn as badges. */
+  alerts?: AlertKind[]
 }
 
 export type LinkKind = 'active' | 'mirror' | 'known'
@@ -27,6 +32,8 @@ export interface LinkStyle {
   alpha: number
   /** Text drawn at the middle of the line, for a value measured on it. */
   label?: string
+  /** Filtered out: drawn faint. */
+  faded?: boolean
 }
 
 const MIN_VISIBLE_LAG = 0.08

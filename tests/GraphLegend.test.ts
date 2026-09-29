@@ -32,3 +32,15 @@ describe('GraphLegend', () => {
     expect(withArrow).toHaveLength(1)
   })
 })
+
+describe('GraphLegend alerts and changes', () => {
+  const wrapper = mount(GraphLegend)
+  const item = (text: string) => wrapper.findAll('li').find((li) => li.text().includes(text))!
+
+  it('draws a lettered badge for each alert entry and a dot on a line for the pulse', () => {
+    expect(item('marked !').find('text').text()).toBe('!')
+    expect(item('marked S').find('text').text()).toBe('S')
+    expect(item('Changed since').find('line').exists()).toBe(true)
+    expect(item('Changed since').find('circle').exists()).toBe(true)
+  })
+})
