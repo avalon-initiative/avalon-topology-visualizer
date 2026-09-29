@@ -54,8 +54,8 @@ describe('Home layout', () => {
   it('puts the tools in a sidebar with one tab per section, the time-lapse first', async () => {
     const w = await walked()
     const tabs = w.findAll('[role="tab"]').map((t) => t.text())
-    expect(tabs.map((t) => t.replace(/\d+$/, ''))).toEqual(['Time-lapse', 'Filters', 'Measure', 'Trace', 'Alerts'])
-    expect(w.get('#tool-sidebar').findAll('[role="tabpanel"]')).toHaveLength(5)
+    expect(tabs.map((t) => t.replace(/\d+$/, ''))).toEqual(['Time-lapse', 'Measure', 'Trace', 'Alerts'])
+    expect(w.get('#tool-sidebar').findAll('[role="tabpanel"]')).toHaveLength(4)
     w.unmount()
   })
 
@@ -117,7 +117,7 @@ describe('Home layout', () => {
   })
 
   describe('detail drawer', () => {
-    const drawer = (w: ReturnType<typeof mount>) => w.find('[data-testid="detail-drawer"]')
+    const drawer = (w: ReturnType<typeof mount>) => w.find('aside[aria-label="Node details"]')
 
     it('opens with the selected node facts and closes when the selection clears', async () => {
       const w = await walked()
@@ -135,7 +135,7 @@ describe('Home layout', () => {
       await select(w, 'http://b')
       const stage = canvas(w).element.parentElement!
       expect(stage.contains(drawer(w).element)).toBe(false)
-      expect(stage.parentElement).toBe(drawer(w).element.closest('main'))
+      expect(stage.parentElement?.parentElement).toBe(drawer(w).element.closest('main'))
       w.unmount()
     })
 
@@ -156,7 +156,7 @@ describe('Home layout', () => {
       await w.get('button[aria-label="Close node details"]').trigger('click')
       expect(drawer(w).exists()).toBe(false)
       await select(w, 'http://b')
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
       await flushPromises()
       expect(drawer(w).exists()).toBe(false)
       w.unmount()

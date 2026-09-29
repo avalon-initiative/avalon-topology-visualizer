@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { arcPath, glyphGeometry, legendGroups } from '../src/utils/legend'
+import { arcPath, glyphGeometry, glyphsById, legendGroups, uiLegendGroups } from '../src/utils/legend'
 
 describe('legendGroups', () => {
   const items = legendGroups().flatMap((g) => g.items)
@@ -69,5 +69,21 @@ describe('legend alerts and changes', () => {
     expect(labels).toContain('marked S')
     expect(labels).toMatch(/reduced motion, a dashed/)
     expect(group.items.map((i) => i.glyph.type)).toEqual(['node', 'node', 'pulse'])
+  })
+})
+
+describe('uiLegendGroups', () => {
+  it('keeps every group, title and item in order, keyed by the item id, with the label in words', () => {
+    const ui = uiLegendGroups()
+    const src = legendGroups()
+    expect(ui.map((g) => g.title)).toEqual(src.map((g) => g.title))
+    expect(ui.map((g) => g.items.map((i) => [i.id, i.label]))).toEqual(src.map((g) => g.items.map((i) => [i.id, i.label])))
+  })
+
+  it('hands every item id a glyph to draw', () => {
+    const glyphs = glyphsById()
+    for (const item of uiLegendGroups().flatMap((g) => g.items)) expect(glyphs[item.id as string]).toBeDefined()
+    expect(glyphs['pulse']).toEqual({ type: 'pulse' })
+    expect(glyphs['role-hexagon']).toMatchObject({ type: 'node', shape: 'hexagon' })
   })
 })

@@ -1,3 +1,4 @@
+import type { AvalonLegendGroup } from '@avalon-initiative/common-ui'
 import { ROLE_LABELS, shapePoints } from './shapes'
 import type { NodeShape } from './shapes'
 import type { LinkKind } from './styleGraph'
@@ -91,4 +92,14 @@ export function glyphGeometry(g: NodeGlyph): GlyphGeometry {
     ring: g.version === 'newest' ? 'solid' : g.version === 'behind' ? 'dashed' : g.version === 'unknown' ? 'dotted' : null,
     lagArc: g.lag && g.lag > 0 ? arcPath(GLYPH_LAG_RADIUS, g.lag) : null,
   }
+}
+
+/** The legend as the shared component's groups; each item's id is the key the glyph slot draws from. */
+export function uiLegendGroups(groups: LegendGroup[] = legendGroups()): AvalonLegendGroup[] {
+  return groups.map((g) => ({ title: g.title, items: g.items.map((i) => ({ id: i.id, label: i.label })) }))
+}
+
+/** Glyph by legend item id, for the glyph slot. */
+export function glyphsById(groups: LegendGroup[] = legendGroups()): Record<string, LegendGlyph> {
+  return Object.fromEntries(groups.flatMap((g) => g.items.map((i) => [i.id, i.glyph] as const)))
 }

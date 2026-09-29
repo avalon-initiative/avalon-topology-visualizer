@@ -14,7 +14,7 @@
 .strip {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: var(--av-space-1) var(--av-space-6);
   padding: var(--av-space-1) var(--av-space-4);
@@ -60,6 +60,12 @@
   align-items: center;
   gap: var(--av-space-3);
   padding-bottom: var(--av-space-2);
+}
+
+.motion {
+  flex: none;
+  margin-left: auto;
+  font-size: var(--av-text-sm);
 }
 
 .file {
@@ -120,6 +126,10 @@
 
   .brand {
     flex: 1 1 100%;
+  }
+
+  .motion {
+    margin-left: 0;
   }
 
   .seed {

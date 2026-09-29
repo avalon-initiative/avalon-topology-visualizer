@@ -61,35 +61,82 @@ describe('Home alerts, filters and detail', () => {
     expect(panel).toContain('Network-measured')
   })
 
+  const bar = (w: Awaited<ReturnType<typeof open>>) => w.get('[data-testid="filters"]')
+  const facet = (w: Awaited<ReturnType<typeof open>>, name: string) => bar(w).findAll('[role="group"]').find((g) => g.attributes('aria-label') === name)!
+  const tick = async (w: Awaited<ReturnType<typeof open>>, name: string, value: string) => {
+    const label = facet(w, name).findAll('label').find((l) => l.text() === value)!
+    await label.get('input').setValue(true)
+  }
+  const chips = (w: Awaited<ReturnType<typeof open>>) => bar(w).findAll('[data-testid="filter-chips"] li').map((c) => c.text())
+
   it('dims filtered nodes by default and hides them (with their links) on request, without moving the rest', async () => {
     const wrapper = await open()
     const canvas = () => wrapper.findComponent({ name: 'TopologyCanvas' })
     const before = { ...(canvas().props('positions') as Record<string, unknown>) }
-    await wrapper.find('[data-testid="filters"] input[type="text"]').setValue('mirror')
-    expect(wrapper.find('[data-testid="filters"]').text()).toContain('Showing 1 of 3 nodes')
+    await bar(wrapper).get('input[type="text"]').setValue('mirror')
+    expect(bar(wrapper).text()).toContain('Showing 1 of 3 nodes')
+    expect(chips(wrapper)).toEqual(['URL: mirror'])
     const styles = canvas().props('nodeStyles') as Record<string, { faded?: boolean }>
     expect(styles['http://other'].faded).toBe(true)
     expect(styles['http://mirror'].faded).toBeUndefined()
     expect(Object.keys(canvas().props('positions'))).toHaveLength(3)
 
-    await wrapper.findAll('[data-testid="filters"] input[type="checkbox"]').at(-1)!.setValue(true)
+    const hide = bar(wrapper).get('input[role="switch"]')
+    expect(bar(wrapper).text()).toContain('stay on the map, dimmed')
+    await hide.setValue(true)
+    expect(bar(wrapper).text()).toContain('removed from the map')
     const after = canvas().props('positions') as Record<string, unknown>
     expect(Object.keys(after)).toEqual(['http://mirror'])
     expect(after['http://mirror']).toEqual(before['http://mirror'])
     expect((canvas().props('linkStyles') as unknown[]).length).toBe(0)
   })
 
-  it('combines search with a facet and clears them together', async () => {
+  it('opens a facet, ticks values, shows a chip for each and narrows the map', async () => {
     const wrapper = await open()
-    await wrapper.find('[data-testid="filters"] input[type="text"]').setValue('http://')
-    const hoster = wrapper.findAll('[data-testid="filters"] label').find((l) => l.text() === 'hoster')!
-    await hoster.find('input').setValue(true)
-    expect(wrapper.find('[data-testid="filters"]').text()).toContain('Showing 2 of 3 nodes')
-    const net = wrapper.findAll('[data-testid="filters"] label').find((l) => l.text() === 'net-b')!
-    await net.find('input').setValue(true)
-    expect(wrapper.find('[data-testid="filters"]').text()).toContain('Showing 1 of 3 nodes')
-    await wrapper.findAll('[data-testid="filters"] button').find((b) => b.text() === 'Clear filters')!.trigger('click')
-    expect(wrapper.find('[data-testid="filters"]').text()).toContain('Showing 3 of 3 nodes')
+    const trigger = () => bar(wrapper).findAll('button[aria-haspopup]').map((b) => b.text())
+    expect(trigger()).toEqual(['Role', 'Network', 'Version'])
+    await tick(wrapper, 'Role', 'hoster')
+    expect(bar(wrapper).text()).toContain('Showing 2 of 3 nodes')
+    expect(chips(wrapper)).toEqual(['Role: hoster'])
+    expect(trigger()[0]).toBe('Role · 1')
+    await tick(wrapper, 'Network', 'net-b')
+    expect(bar(wrapper).text()).toContain('Showing 1 of 3 nodes')
+    expect(chips(wrapper)).toEqual(['Role: hoster', 'Network: net-b'])
+  })
+
+  it('removes only the value a chip stands for, and the search with its chip', async () => {
+    const wrapper = await open()
+    await bar(wrapper).get('input[type="text"]').setValue('http://')
+    await tick(wrapper, 'Role', 'hoster')
+    await tick(wrapper, 'Role', 'gateway')
+    expect(chips(wrapper)).toEqual(['Role: hoster', 'Role: gateway', 'URL: http://'])
+    await bar(wrapper).get('button[aria-label="Remove Role: gateway"]').trigger('click')
+    expect(chips(wrapper)).toEqual(['Role: hoster', 'URL: http://'])
+    expect(bar(wrapper).text()).toContain('Showing 2 of 3 nodes')
+    await bar(wrapper).get('button[aria-label="Remove URL: http://"]').trigger('click')
+    expect((bar(wrapper).get('input[type="text"]').element as HTMLInputElement).value).toBe('')
+    expect(chips(wrapper)).toEqual(['Role: hoster'])
+  })
+
+  it('clears every filter together and offers Clear only while one is on', async () => {
+    const wrapper = await open()
+    const clear = () => bar(wrapper).findAll('button').find((b) => b.text() === 'Clear filters')
+    expect(clear()).toBeUndefined()
+    await bar(wrapper).get('input[type="text"]').setValue('http://')
+    await tick(wrapper, 'Role', 'hoster')
+    await tick(wrapper, 'Network', 'net-b')
+    expect(bar(wrapper).text()).toContain('Showing 1 of 3 nodes')
+    await clear()!.trigger('click')
+    expect(bar(wrapper).text()).toContain('Showing 3 of 3 nodes')
+    expect(chips(wrapper)).toEqual([])
+    expect(clear()).toBeUndefined()
+  })
+
+  it('keeps the filter bar out of the drawer and the drawer beside the map', async () => {
+    const wrapper = await open()
+    const stage = wrapper.findComponent({ name: 'TopologyCanvas' }).element.parentElement!
+    expect(bar(wrapper).element.parentElement).toBe(stage.parentElement)
+    expect(bar(wrapper).element.nextElementSibling).toBe(stage)
   })
 
   it('offers the reduced-motion toggle, on by default only when the system asks for it', async () => {

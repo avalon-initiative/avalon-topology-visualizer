@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AvalonButton, AvalonTextField } from '@avalon-initiative/common-ui'
+import { AvalonButton, AvalonTextField, AvalonToggleSwitch } from '@avalon-initiative/common-ui'
 import styles from '../styles/TopBar.module.scss'
 import type { SummaryStat } from '../utils/summaryStats'
 
@@ -12,10 +12,12 @@ defineProps<{
   /** Progress or source line, e.g. "Live walk from ...". */
   status: string
   stats: SummaryStat[]
+  /** True when motion is reduced (OS or the app's setting). */
+  reducedMotion: boolean
 }>()
 const seedUrl = defineModel<string>('seedUrl', { required: true })
 const refreshSeconds = defineModel<string>('refreshSeconds', { required: true })
-defineEmits<{ walk: []; stop: []; save: []; file: [event: Event]; toggleTools: []; toggleControls: [] }>()
+defineEmits<{ walk: []; stop: []; save: []; file: [event: Event]; toggleTools: []; toggleControls: []; toggleMotion: [] }>()
 </script>
 
 <template>
@@ -56,14 +58,23 @@ defineEmits<{ walk: []; stop: []; save: []; file: [event: Event]; toggleTools: [
       </form>
     </div>
 
-    <div v-if="status || stats.length" :class="styles.strip">
-      <p :class="styles.status" role="status">{{ status }}</p>
+    <div :class="styles.strip">
+      <p v-if="status" :class="styles.status" role="status">{{ status }}</p>
       <dl v-if="stats.length" :class="styles.stats" data-testid="summary">
         <div v-for="stat in stats" :key="stat.label" :class="styles.stat" :title="stat.hint">
           <dt>{{ stat.label }}</dt>
           <dd>{{ stat.value }}</dd>
         </div>
       </dl>
+      <div :class="styles.motion">
+        <AvalonToggleSwitch
+          :model-value="reducedMotion"
+          label="Reduce motion"
+          title="Changes show as static markers instead of pulses."
+          data-testid="motion-toggle"
+          @update:model-value="$emit('toggleMotion')"
+        />
+      </div>
     </div>
   </div>
 </template>
