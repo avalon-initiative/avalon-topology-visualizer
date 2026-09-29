@@ -77,3 +77,12 @@ describe('toLayoutInput with extra links', () => {
     expect(ids).toEqual(['http://a', 'http://b', 'http://dead'])
   })
 })
+
+describe('toLayoutInput with a probe link', () => {
+  it('adds a measured link between two known nodes without replacing the crawled one', () => {
+    const merged = mergeGraph(graph([node('http://a'), node('http://b')], [edge('http://a', 'http://b', 'active', 10)]))
+    const { links, nodeIds } = toLayoutInput(merged, [{ a: 'http://a', b: 'http://b', rttMs: 50 }])
+    expect(nodeIds).toEqual(['http://a', 'http://b'])
+    expect(links.map((l) => l.rttMs)).toEqual([10, 50])
+  })
+})

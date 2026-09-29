@@ -56,6 +56,7 @@ const LAG_ARC_OFFSET = 6
 const MIRROR_OFFSET_PX = 3
 const ARROW_LENGTH_PX = 9
 const DIMMED_ALPHA = 0.4
+const LINK_LABEL_OFFSET_PX = 4
 
 export function nodeLabel(id: string): string {
   if (id === VIEWER_ID) return VIEWER_LABEL
@@ -163,6 +164,15 @@ export function drawGraph(ctx: CanvasRenderingContext2D, input: DrawInput): void
     drawNode(ctx, id, at, input.nodeStyles?.[id], theme)
     if (pinned.has(id)) ring(ctx, at, NODE_DRAW_RADIUS + PIN_RING_OFFSET, theme.pinned, 2.5, [])
     if (id === selected) ring(ctx, at, NODE_DRAW_RADIUS + SELECT_RING_OFFSET, theme.label, 1.5, [])
+  }
+
+  ctx.fillStyle = theme.label
+  for (const link of links) {
+    const a = positions[link.a]
+    const b = positions[link.b]
+    if (!link.label || !a || !b) continue
+    const [sa, sb] = [toScreen(view, a), toScreen(view, b)]
+    ctx.fillText(link.label, (sa.x + sb.x) / 2, (sa.y + sb.y) / 2 - LINK_LABEL_OFFSET_PX)
   }
   if (input.trace) drawTrace(ctx, input.trace, positions, view, theme)
 }

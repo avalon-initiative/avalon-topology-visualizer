@@ -82,3 +82,14 @@ describe('useGraphStyle', () => {
     expect(api.links.value).toHaveLength(2)
   })
 })
+
+describe('useGraphStyle labelled extra links', () => {
+  it('draws an extra link with its label, and leaves the label off when there is none', () => {
+    const source = ref<MergedGraph | null>(build(['http://a', 'http://b']))
+    const extra = ref([{ a: 'http://a', b: 'http://b', label: '9 ms by a' }, { a: 'http://b', b: 'http://a' }])
+    const api = effectScope().run(() => useGraphStyle(source, extra))!
+    const drawn = api.links.value.filter((l) => l.kind === 'active').slice(1)
+    expect(drawn[0].label).toBe('9 ms by a')
+    expect(drawn[1]).not.toHaveProperty('label')
+  })
+})
