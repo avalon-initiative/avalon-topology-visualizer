@@ -57,6 +57,7 @@ const handlers = useTopologyCanvas({
     @pointerdown="handlers.onPointerDown"
     @pointermove="handlers.onPointerMove"
     @pointerup="handlers.onPointerUp"
+    @pointerleave="handlers.onPointerLeave"
     @dblclick="handlers.onDoubleClick"
   />
 </template>
