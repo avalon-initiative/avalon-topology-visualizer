@@ -130,6 +130,26 @@ describe('Home layout', () => {
       w.unmount()
     })
 
+    it('takes room beside the map instead of floating over it', async () => {
+      const w = await walked()
+      await select(w, 'http://b')
+      const stage = canvas(w).element.parentElement!
+      expect(stage.contains(drawer(w).element)).toBe(false)
+      expect(stage.parentElement).toBe(drawer(w).element.closest('main'))
+      w.unmount()
+    })
+
+    it('makes the tools step aside on narrow screens while the drawer is open', async () => {
+      const w = await walked()
+      const side = () => w.get('#tool-sidebar').classes().join(' ')
+      expect(side()).not.toMatch(/yields/)
+      await select(w, 'http://b')
+      expect(side()).toMatch(/yields/)
+      await select(w, undefined)
+      expect(side()).not.toMatch(/yields/)
+      w.unmount()
+    })
+
     it('closes with its close button and on Escape', async () => {
       const w = await walked()
       await select(w, 'http://b')

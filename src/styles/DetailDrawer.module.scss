@@ -1,19 +1,16 @@
-// Slides in from the right on wide screens and up from the bottom on narrow ones.
+// Takes room beside the map (wide screens) or below it (narrow ones), so the map is refitted around it.
 .drawer {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 3;
   display: flex;
+  flex: none;
   flex-direction: column;
   gap: var(--av-space-3);
-  width: min(26rem, 100%);
+  width: 26rem;
+  max-width: 100%;
   padding: var(--av-space-4);
+  overflow-x: hidden;
   overflow-y: auto;
   border-left: 1px solid var(--av-color-border-strong);
   background: var(--av-color-surface-raised);
-  box-shadow: var(--av-shadow-card);
 
   &:focus {
     outline: none;
@@ -43,25 +40,34 @@
 }
 
 .sliding {
-  transition: transform 0.2s ease-out;
+  transition:
+    width 0.2s ease-out,
+    max-height 0.2s ease-out,
+    padding 0.2s ease-out;
 }
 
+// Grows from nothing; the map refits as it does.
 .away {
-  transform: translateX(100%);
+  width: 0;
+  max-height: 0;
+  padding-right: 0;
+  padding-left: 0;
+  border-left-width: 0;
 }
 
-@media (max-width: 767px) {
+// Below desktop width there is no room beside the map, so it sits under it instead.
+@media (max-width: 1023px) {
   .drawer {
-    top: auto;
-    left: 0;
     width: 100%;
-    max-height: 60%;
-    border-left: 0;
+    max-height: 45dvh;
     border-top: 1px solid var(--av-color-border-strong);
-    border-radius: var(--av-radius-lg) var(--av-radius-lg) 0 0;
+    border-left: 0;
   }
 
   .away {
-    transform: translateY(100%);
+    width: 100%;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-top-width: 0;
   }
 }

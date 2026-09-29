@@ -31,6 +31,7 @@
 
 .main {
   position: relative;
+  display: flex;
   flex: 1;
   min-width: 0;
   min-height: 0;
@@ -42,6 +43,12 @@
   }
 }
 
+@media (max-width: 1023px) {
+  .main {
+    flex-direction: column;
+  }
+}
+
 @media (max-width: 767px) {
   .body {
     flex-direction: column;
@@ -49,6 +56,11 @@
 
   .main {
     order: 1;
+  }
+
+  // The node sheet takes the room below the map, so the tools step aside while it is open.
+  .yields {
+    display: none;
   }
 
   .sidebar {

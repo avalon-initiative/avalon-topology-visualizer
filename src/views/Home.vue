@@ -99,7 +99,7 @@ function probeSecond() {
 </script>
 
 <template>
-  <AppShell :sidebar-open="workspace.sidebar.open.value">
+  <AppShell :sidebar-open="workspace.sidebar.open.value" :drawer-open="drawer.isOpen()">
     <template #topbar>
       <TopBar
         v-model:seed-url="seedUrl"
@@ -237,19 +237,20 @@ function probeSecond() {
         <template #scale><ScaleBar :px="bar.px" :ms="bar.ms" /></template>
       </CanvasOverlay>
 
-      <DetailDrawer
-        :open="drawer.isOpen()"
-        :title="drawer.shown.value?.title ?? ''"
-        :rows="drawer.shown.value ? [...drawer.shown.value.rows, ...extras.detailExtra.value] : []"
-        :alerts="nodeAlerts"
-        :reduced="extras.motion.reduced.value"
-        :can-first="selected !== undefined && selected !== probe.to.value"
-        :can-second="selected !== undefined && selected !== probe.from.value"
-        @close="drawer.close"
-        @trace="traceHere"
-        @probe-first="probeFirst"
-        @probe-second="probeSecond"
-      />
     </div>
+
+    <DetailDrawer
+      :open="drawer.isOpen()"
+      :title="drawer.shown.value?.title ?? ''"
+      :rows="drawer.shown.value ? [...drawer.shown.value.rows, ...extras.detailExtra.value] : []"
+      :alerts="nodeAlerts"
+      :reduced="extras.motion.reduced.value"
+      :can-first="selected !== undefined && selected !== probe.to.value"
+      :can-second="selected !== undefined && selected !== probe.from.value"
+      @close="drawer.close"
+      @trace="traceHere"
+      @probe-first="probeFirst"
+      @probe-second="probeSecond"
+    />
   </AppShell>
 </template>
