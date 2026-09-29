@@ -37,7 +37,29 @@ describe('TimelinePanel', () => {
 
   it('marks joins, departures and version changes as text on the ticks', () => {
     const labels = panel().findAll('[data-testid="tick-label"]').map((t) => t.text())
-    expect(labels).toEqual(['.', '+2', '-1 ~1'])
+    expect(labels).toEqual(['first', '+2', '-1 ~1'])
+  })
+
+  it('numbers each snapshot so it is clear what to click', () => {
+    const w = panel()
+    expect(w.findAll('[data-testid="tick-number"]').map((t) => t.text())).toEqual(['1', '2', '3'])
+  })
+
+  it('says "no change" for an unchanged snapshot after the first, and never leaves a tick blank', () => {
+    const w = panel({ markers: [marker(0), marker(1), marker(2, 1)] })
+    expect(w.findAll('[data-testid="tick-label"]').map((t) => t.text())).toEqual(['first', 'no change', '+1'])
+  })
+
+  it('tags only the newest snapshot as latest', () => {
+    const w = panel()
+    const tagged = w.findAll('[data-testid="timeline-ticks"] li').map((li) => li.text().includes('latest'))
+    expect(tagged).toEqual([false, false, true])
+  })
+
+  it('marks the replayed snapshot as the current one for assistive tech', () => {
+    const w = panel({ index: 1 })
+    const current = w.findAll('[data-testid="timeline-ticks"] button').map((b) => b.attributes('aria-current'))
+    expect(current).toEqual([undefined, 'true', undefined])
   })
 
   it('seeks from a tick and from the slider, and the slider sits on the newest when live', async () => {
