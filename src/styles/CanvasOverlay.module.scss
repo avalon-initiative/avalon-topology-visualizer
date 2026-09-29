@@ -52,7 +52,10 @@
 
 // Sits between the zoom buttons and the scale bar as a quiet readout.
 .zoom {
-  color: var(--av-color-text-muted);
+  padding: var(--av-space-1) var(--av-space-2);
+  border-radius: var(--av-radius-sm);
+  background: var(--av-color-bg-translucent);
+  color: var(--av-color-text-secondary);
   font-size: var(--av-text-sm);
   font-variant-numeric: tabular-nums;
 }
