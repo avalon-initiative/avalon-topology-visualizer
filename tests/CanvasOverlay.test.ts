@@ -3,9 +3,9 @@ import { describe, expect, it } from 'vitest'
 import { h } from 'vue'
 import CanvasOverlay from '../src/components/CanvasOverlay.vue'
 
-const make = (legendOpen: boolean) =>
+const make = (legendOpen: boolean, panned = false) =>
   mount(CanvasOverlay, {
-    props: { legendOpen },
+    props: { legendOpen, panned },
     slots: { legend: () => h('p', 'legend body'), scale: () => h('p', 'scale body'), notices: () => h('p', 'notice body') },
   })
 
@@ -35,5 +35,13 @@ describe('CanvasOverlay', () => {
     const w = make(false)
     expect(w.text()).toContain('scale body')
     expect(w.text()).toContain('notice body')
+  })
+
+  it('offers Reset view only while panned, and asks to reset', async () => {
+    expect(make(false).findAll('button').map((b) => b.text())).toEqual(['Show legend'])
+    const w = make(false, true)
+    const reset = w.findAll('button').find((b) => b.text() === 'Reset view')!
+    await reset.trigger('click')
+    expect(w.emitted('resetView')).toHaveLength(1)
   })
 })

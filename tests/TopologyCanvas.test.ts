@@ -100,12 +100,120 @@ describe('TopologyCanvas', () => {
     expect(wrapper.emitted('pin')).toBeUndefined()
   })
 
-  it('does nothing when the pointer goes down on empty space', async () => {
+  it('does not pin when the pointer is dragged from empty space', async () => {
     const wrapper = mount(TopologyCanvas, { props: props() })
     const canvas = wrapper.find('canvas')
     await fire(canvas, 'pointerdown', 20, 20)
     await fire(canvas, 'pointermove', 60, 60)
     expect(wrapper.emitted('pin')).toBeUndefined()
+  })
+
+  describe('panning', () => {
+    it('emits the pointer movement 1:1 while dragging empty space, starting from the press point', async () => {
+      const wrapper = mount(TopologyCanvas, { props: props() })
+      const canvas = wrapper.find('canvas')
+      await fire(canvas, 'pointerdown', 20, 20)
+      await fire(canvas, 'pointermove', 60, 50)
+      await fire(canvas, 'pointermove', 50, 70)
+      await fire(canvas, 'pointerup', 50, 70)
+      expect(wrapper.emitted('pan')).toEqual([[40, 30], [-10, 20]])
+      expect(wrapper.emitted('select')).toBeUndefined()
+    })
+
+    it('does not pan on a node drag, which still pins', async () => {
+      const wrapper = mount(TopologyCanvas, { props: props() })
+      const canvas = wrapper.find('canvas')
+      await fire(canvas, 'pointerdown', 300, 150)
+      await fire(canvas, 'pointermove', 350, 200)
+      await fire(canvas, 'pointerup', 350, 200)
+      expect(wrapper.emitted('pan')).toBeUndefined()
+      expect(wrapper.emitted('pin')).toHaveLength(1)
+    })
+
+    it('treats jitter under the threshold on empty space as a click that deselects', async () => {
+      const wrapper = mount(TopologyCanvas, { props: props() })
+      const canvas = wrapper.find('canvas')
+      await fire(canvas, 'pointerdown', 20, 20)
+      await fire(canvas, 'pointermove', 22, 21)
+      await fire(canvas, 'pointerup', 22, 21)
+      expect(wrapper.emitted('pan')).toBeUndefined()
+      expect(wrapper.emitted('select')).toEqual([[undefined]])
+    })
+
+    it('captures the pointer on press and releases it on release and on cancel', async () => {
+      const wrapper = mount(TopologyCanvas, { props: props() })
+      const el = wrapper.find('canvas').element as HTMLCanvasElement
+      el.setPointerCapture = vi.fn()
+      el.releasePointerCapture = vi.fn()
+      const canvas = wrapper.find('canvas')
+      await fire(canvas, 'pointerdown', 20, 20)
+      expect(el.setPointerCapture).toHaveBeenCalledTimes(1)
+      await fire(canvas, 'pointerup', 20, 20)
+      expect(el.releasePointerCapture).toHaveBeenCalledTimes(1)
+      await fire(canvas, 'pointerdown', 20, 20)
+      await fire(canvas, 'pointercancel', 20, 20)
+      expect(el.releasePointerCapture).toHaveBeenCalledTimes(2)
+    })
+
+    it('stops panning after release or cancel, and a cancel does not select', async () => {
+      const wrapper = mount(TopologyCanvas, { props: props() })
+      const canvas = wrapper.find('canvas')
+      await fire(canvas, 'pointerdown', 20, 20)
+      await fire(canvas, 'pointercancel', 20, 20)
+      await fire(canvas, 'pointermove', 90, 90)
+      expect(wrapper.emitted('pan')).toBeUndefined()
+      expect(wrapper.emitted('select')).toBeUndefined()
+    })
+
+    it('keeps panning when the pointer leaves the canvas mid-drag', async () => {
+      const wrapper = mount(TopologyCanvas, { props: props() })
+      const canvas = wrapper.find('canvas')
+      await fire(canvas, 'pointerdown', 20, 20)
+      await fire(canvas, 'pointermove', 60, 20)
+      await fire(canvas, 'pointerleave', 60, 20)
+      await fire(canvas, 'pointermove', 80, 20)
+      expect(wrapper.emitted('pan')).toEqual([[40, 0], [20, 0]])
+    })
+
+    it('shows grab over empty space, pointer over a node and grabbing while panning', async () => {
+      const wrapper = mount(TopologyCanvas, { props: props() })
+      const canvas = wrapper.find('canvas')
+      const cursor = () => canvas.classes().join(' ').match(/_(grabbing|grab|pointer)_/)?.[1]
+      expect(cursor()).toBe('grab')
+      await fire(canvas, 'pointermove', 300, 150)
+      expect(cursor()).toBe('pointer')
+      await fire(canvas, 'pointermove', 20, 20)
+      await fire(canvas, 'pointerdown', 20, 20)
+      await fire(canvas, 'pointermove', 60, 20)
+      expect(cursor()).toBe('grabbing')
+      await fire(canvas, 'pointerup', 60, 20)
+      expect(cursor()).toBe('grab')
+    })
+
+    it('resets the view on a double-click of empty space, not of a node', async () => {
+      const wrapper = mount(TopologyCanvas, { props: props() })
+      const canvas = wrapper.find('canvas')
+      await fire(canvas, 'dblclick', 200, 150)
+      expect(wrapper.emitted('resetView')).toBeUndefined()
+      await fire(canvas, 'dblclick', 20, 20)
+      expect(wrapper.emitted('resetView')).toHaveLength(1)
+    })
+
+    it('is focusable and pans with the arrow keys, faster with shift, and resets with 0', async () => {
+      const wrapper = mount(TopologyCanvas, { props: props() })
+      const canvas = wrapper.find('canvas')
+      expect(canvas.attributes('tabindex')).toBe('0')
+      await canvas.trigger('keydown', { key: 'ArrowRight' })
+      await canvas.trigger('keydown', { key: 'ArrowUp', shiftKey: true })
+      await canvas.trigger('keydown', { key: 'a' })
+      expect(wrapper.emitted('pan')).toEqual([[-40, 0], [0, 120]])
+      await canvas.trigger('keydown', { key: '0' })
+      expect(wrapper.emitted('resetView')).toHaveLength(1)
+    })
+
+    it('says how to move the view', () => {
+      expect(mount(TopologyCanvas, { props: props() }).find('canvas').attributes('aria-label')).toMatch(/drag empty space to move the view/i)
+    })
   })
 
   it('releases a pin on double-click of that node only', async () => {

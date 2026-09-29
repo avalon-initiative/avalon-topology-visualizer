@@ -23,7 +23,13 @@ const props = defineProps<{
   height: number
 }>()
 
-const emit = defineEmits<{ pin: [id: string, at: Point]; unpin: [id: string]; select: [id: string | undefined] }>()
+const emit = defineEmits<{
+  pin: [id: string, at: Point]
+  unpin: [id: string]
+  select: [id: string | undefined]
+  pan: [dx: number, dy: number]
+  resetView: []
+}>()
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 const pixelRatio = useDevicePixelRatio()
@@ -44,19 +50,24 @@ const handlers = useTopologyCanvas({
   onPin: (id, at) => emit('pin', id, at),
   onUnpin: (id) => emit('unpin', id),
   onSelect: (id) => emit('select', id),
+  onPan: (dx, dy) => emit('pan', dx, dy),
+  onResetView: () => emit('resetView'),
 })
 </script>
 
 <template>
   <canvas
     ref="canvas"
-    :class="styles.canvas"
+    :class="[styles.canvas, styles[handlers.cursor.value]]"
+    tabindex="0"
     :style="{ width: `${width}px`, height: `${height}px` }"
     role="img"
-    aria-label="Network graph. Distance between nodes is measured round trip time. Click a node for details, drag it to pin it, double-click to release it."
+    aria-label="Network graph. Distance between nodes is measured round trip time. Click a node for details, drag it to pin it, double-click it to release it. Drag empty space to move the view, double-click empty space to reset it. With the graph focused, arrow keys move the view and 0 resets it."
     @pointerdown="handlers.onPointerDown"
     @pointermove="handlers.onPointerMove"
     @pointerup="handlers.onPointerUp"
+    @pointercancel="handlers.onPointerCancel"
+    @keydown="handlers.onKeyDown"
     @pointerleave="handlers.onPointerLeave"
     @dblclick="handlers.onDoubleClick"
   />

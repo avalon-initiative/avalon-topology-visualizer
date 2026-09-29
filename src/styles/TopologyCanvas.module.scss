@@ -4,4 +4,23 @@
   display: block;
   touch-action: none;
   background: var(--av-color-surface);
+  cursor: grab;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--av-color-primary);
+    outline-offset: -2px;
+  }
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+.grabbing {
+  cursor: grabbing;
+}
+
+.grab {
+  cursor: grab;
 }
