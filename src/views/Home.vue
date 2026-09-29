@@ -4,6 +4,7 @@ import GraphLegend from '../components/GraphLegend.vue'
 import NodeDetailPanel from '../components/NodeDetailPanel.vue'
 import NodeIssueList from '../components/NodeIssueList.vue'
 import ScaleBar from '../components/ScaleBar.vue'
+import TimelinePanel from '../components/TimelinePanel.vue'
 import TracePanel from '../components/TracePanel.vue'
 import TopologyCanvas from '../components/TopologyCanvas.vue'
 import ProbePanel from '../components/ProbePanel.vue'
@@ -13,6 +14,8 @@ import { useCrawler } from '../composables/useCrawler'
 import { useCrawlerForm } from '../composables/useCrawlerForm'
 import { useGraphStyle } from '../composables/useGraphStyle'
 import { useProbe } from '../composables/useProbe'
+import { useTimelapse } from '../composables/useTimelapse'
+import { useTweenedPositions } from '../composables/useTweenedPositions'
 import { useTrace } from '../composables/useTrace'
 import { useViewerRtt } from '../composables/useViewerRtt'
 import { CANVAS_HEIGHT, CANVAS_WIDTH, useLayout } from '../composables/useLayout'
@@ -20,13 +23,17 @@ import { computed } from 'vue'
 import { describeFailure } from '../utils/describeFailure'
 
 const crawler = useCrawler()
-const { phase, merged, progress, error, takenAt, isLive } = crawler
+const { phase, progress, error, takenAt, isLive } = crawler
+const timelapse = useTimelapse(crawler)
+// The graph on screen: the live crawl, or the snapshot being replayed.
+const merged = timelapse.shown
 const viewerRtt = useViewerRtt(merged)
 const probe = useProbe(merged, () => selected.value)
 const extraLayoutLinks = computed(() => [...viewerRtt.links.value, ...probe.links.value])
 const extraDrawLinks = computed(() => [...viewerRtt.drawLinks.value, ...probe.drawLinks.value])
-const { layout, pinned, view, bar, pin, unpin } = useLayout(merged, extraLayoutLinks)
+const { layout, pinned, bar, pin, unpin } = useLayout(merged, extraLayoutLinks)
 const { selected, nodeStyles, links: linkStyles, detail } = useGraphStyle(merged, extraDrawLinks)
+const animated = useTweenedPositions(computed(() => layout.value?.positions), timelapse.replaying, CANVAS_WIDTH, CANVAS_HEIGHT)
 const { seedUrl, refreshSeconds, walk, onFile, save } = useCrawlerForm(crawler, import.meta.env.VITE_AVALON_SEED_URL ?? '')
 const tracer = useTrace({ target: selected, defaultEntry: () => seedUrl.value })
 </script>
@@ -58,8 +65,25 @@ const tracer = useTrace({ target: selected, defaultEntry: () => seedUrl.value })
         :message="`Stopped at the ${merged.stoppedAtLimit.maxNodes ? 'node' : 'depth'} limit, so the graph may be incomplete.`"
       />
 
+      <TimelinePanel
+        :markers="timelapse.markers.value"
+        :index="timelapse.replaying.value ? timelapse.index.value : null"
+        :playing="timelapse.playing.value"
+        :diff="timelapse.currentDiff.value"
+        :error="timelapse.error.value"
+        :saved="timelapse.saved.value"
+        @seek="timelapse.seek"
+        @step="timelapse.step"
+        @live="timelapse.goLive"
+        @play="timelapse.play"
+        @pause="timelapse.pause"
+        @export="timelapse.exportHistory"
+        @clear="timelapse.clear"
+        @import-file="timelapse.onImportFile"
+      />
+
       <template v-if="merged">
-        <p :class="styles.source">
+        <p v-if="!timelapse.replaying.value" :class="styles.source">
           {{ isLive ? 'Live walk' : 'Snapshot' }} from {{ takenAt?.toLocaleString() }}
         </p>
         <dl :class="styles.summary" data-testid="summary">
@@ -76,13 +100,13 @@ const tracer = useTrace({ target: selected, defaultEntry: () => seedUrl.value })
         </dl>
         <TopologyCanvas
           v-if="layout"
-          :positions="layout.positions"
+          :positions="animated.positions.value"
           :links="[...merged.links, ...viewerRtt.drawLinks.value]"
           :link-styles="linkStyles"
           :node-styles="nodeStyles"
           :pinned="pinned"
           :selected="selected"
-          :view="view"
+          :view="animated.view.value"
           :trace="tracer.drawing.value"
           :width="CANVAS_WIDTH"
           :height="CANVAS_HEIGHT"

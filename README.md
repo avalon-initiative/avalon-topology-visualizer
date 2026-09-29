@@ -146,6 +146,19 @@ repeats every refresh interval (default 30 seconds; 0 walks once). A walk that
 hits its node or depth limit says so instead of presenting a partial graph as
 complete.
 
+## Time-lapse
+
+Every live refresh is recorded as a snapshot in a bounded history (the newest 30;
+the oldest is dropped) kept in this browser's local storage, so it survives a
+reload. The timeline scrubber replays the history with the layout easing between
+snapshots, and marks each one with what changed since the one before: `+` nodes
+that joined, `-` nodes that left or stopped answering, `~` protocol version
+changes. Scrubbing switches to replay mode; the crawl keeps refreshing and
+recording in the background, and **Back to live** returns to it. **Export
+history** writes the history as JSON (a list of the snapshots above) and
+**Import history** reads it back, or reads a single saved snapshot. Without
+browser storage the history lives in memory only, and the panel says so.
+
 ## Checks
 
 ```bash

@@ -35,6 +35,11 @@ export function parseSnapshot(text: string): Snapshot {
   } catch {
     return fail('the file is not valid JSON')
   }
+  return checkSnapshot(raw)
+}
+
+/** Validates an already-parsed value (a snapshot file, or one entry of a history file). */
+export function checkSnapshot(raw: unknown): Snapshot {
   const s = raw as Partial<Snapshot> | null
   if (s === null || typeof s !== 'object') return fail('expected a JSON object')
   if (s.format !== SNAPSHOT_FORMAT) return fail('unrecognized format')
