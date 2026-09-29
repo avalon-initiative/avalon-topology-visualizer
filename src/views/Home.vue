@@ -4,9 +4,8 @@ import { computed, ref } from 'vue'
 import AppShell from '../components/AppShell.vue'
 import CanvasOverlay from '../components/CanvasOverlay.vue'
 import DetailDrawer from '../components/DetailDrawer.vue'
-import FilterPanel from '../components/FilterPanel.vue'
+import FilterBar from '../components/FilterBar.vue'
 import GraphLegend from '../components/GraphLegend.vue'
-import MotionToggle from '../components/MotionToggle.vue'
 import ProbePanel from '../components/ProbePanel.vue'
 import ScaleBar from '../components/ScaleBar.vue'
 import TimelinePanel from '../components/TimelinePanel.vue'
@@ -72,7 +71,6 @@ const tabs = computed(() =>
     hasGraph: merged.value !== null,
     replaying: timelapse.replaying.value,
     snapshots: timelapse.markers.value.length,
-    filtersOn: extras.filterOn.value,
     issues: issueCount.value,
   }),
 )
@@ -109,12 +107,14 @@ function probeSecond() {
         :controls-open="workspace.controls.open.value"
         :status="status"
         :stats="stats"
+        :reduced-motion="extras.motion.reduced.value"
         @walk="walk"
         @stop="crawler.stop"
         @save="save"
         @file="onFile"
         @toggle-tools="workspace.sidebar.toggle"
         @toggle-controls="workspace.controls.toggle"
+        @toggle-motion="extras.motion.toggle"
       />
     </template>
 
@@ -137,23 +137,6 @@ function probeSecond() {
             @clear="timelapse.clear"
             @import-file="timelapse.onImportFile"
           />
-        </template>
-        <template #filters>
-          <template v-if="merged">
-            <FilterPanel
-              :filters="extras.filters.value"
-              :options="extras.options.value"
-              :mode="extras.filterMode.value"
-              :active="extras.filterOn.value"
-              :shown="extras.shownCount.value"
-              :total="merged.nodes.length"
-              @toggle="extras.toggleFilter"
-              @search="extras.filters.value = { ...extras.filters.value, search: $event }"
-              @mode="extras.filterMode.value = $event"
-              @clear="extras.clearFilters"
-            />
-            <MotionToggle :reduced="extras.motion.reduced.value" @toggle="extras.motion.toggle" />
-          </template>
         </template>
         <template #measure>
           <template v-if="merged">
@@ -203,39 +186,54 @@ function probeSecond() {
       </ToolSidebar>
     </template>
 
-    <div ref="stage" :class="styles.stage">
-      <TopologyCanvas
-        v-if="layout && merged"
-        :positions="extras.drawing.value.positions"
-        :links="[...merged.links, ...viewerRtt.drawLinks.value]"
-        :link-styles="extras.drawing.value.linkStyles"
-        :node-styles="extras.drawing.value.nodeStyles"
-        :pulse="extras.pulse.value"
-        :pinned="pinned"
-        :selected="selected"
-        :view="animated.view.value"
-        :trace="tracer.drawing.value"
-        :width="size.width"
-        :height="size.height"
-        @pin="pin"
-        @unpin="unpin"
-        @select="selected = $event"
+    <div :class="styles.workspace">
+      <FilterBar
+        v-if="merged"
+        :filters="extras.filters.value"
+        :options="extras.options.value"
+        :mode="extras.filterMode.value"
+        :active="extras.filterOn.value"
+        :shown="extras.shownCount.value"
+        :total="merged.nodes.length"
+        @facet="extras.setFacetValues"
+        @search="extras.setSearch"
+        @remove-chip="extras.removeChip"
+        @mode="extras.filterMode.value = $event"
+        @clear="extras.clearFilters"
       />
-      <p v-else :class="styles.empty">Enter a seed node URL and choose Walk network, or open a saved snapshot.</p>
+      <div ref="stage" :class="styles.stage">
+        <TopologyCanvas
+          v-if="layout && merged"
+          :positions="extras.drawing.value.positions"
+          :links="[...merged.links, ...viewerRtt.drawLinks.value]"
+          :link-styles="extras.drawing.value.linkStyles"
+          :node-styles="extras.drawing.value.nodeStyles"
+          :pulse="extras.pulse.value"
+          :pinned="pinned"
+          :selected="selected"
+          :view="animated.view.value"
+          :trace="tracer.drawing.value"
+          :width="size.width"
+          :height="size.height"
+          @pin="pin"
+          @unpin="unpin"
+          @select="selected = $event"
+        />
+        <p v-else :class="styles.empty">Enter a seed node URL and choose Walk network, or open a saved snapshot.</p>
 
-      <CanvasOverlay :legend-open="workspace.legend.open.value" @toggle-legend="workspace.legend.toggle">
-        <template #notices>
-          <AvalonWarningBanner v-if="error" title="Could not load the network" :message="error" tone="danger" />
-          <AvalonWarningBanner
-            v-if="merged?.stoppedAtLimit"
-            title="Walk stopped at a limit"
-            :message="`Stopped at the ${merged.stoppedAtLimit.maxNodes ? 'node' : 'depth'} limit, so the graph may be incomplete.`"
-          />
-        </template>
-        <template v-if="layout" #legend><GraphLegend /></template>
-        <template #scale><ScaleBar :px="bar.px" :ms="bar.ms" /></template>
-      </CanvasOverlay>
-
+        <CanvasOverlay :legend-open="workspace.legend.open.value" @toggle-legend="workspace.legend.toggle">
+          <template #notices>
+            <AvalonWarningBanner v-if="error" title="Could not load the network" :message="error" tone="danger" />
+            <AvalonWarningBanner
+              v-if="merged?.stoppedAtLimit"
+              title="Walk stopped at a limit"
+              :message="`Stopped at the ${merged.stoppedAtLimit.maxNodes ? 'node' : 'depth'} limit, so the graph may be incomplete.`"
+            />
+          </template>
+          <template v-if="layout" #legend><GraphLegend /></template>
+          <template #scale><ScaleBar :px="bar.px" :ms="bar.ms" /></template>
+        </CanvasOverlay>
+      </div>
     </div>
 
     <DetailDrawer

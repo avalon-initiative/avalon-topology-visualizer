@@ -1,0 +1,116 @@
+// Sits above the map inside the main area, so the map shrinks by its height and the drawer stays clear of it.
+// It reflows by its own width, so it also folds up when the drawer narrows the map.
+.bar {
+  container-type: inline-size;
+  position: relative;
+  z-index: 2;
+  flex: none;
+  padding: var(--av-space-2) var(--av-space-4);
+  border-bottom: 1px solid var(--av-color-border);
+  background: var(--av-color-surface);
+}
+
+// Wide: the panel's parts join the row, ordered search, facets, count, extras, chips.
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--av-space-2) var(--av-space-3);
+}
+
+.panel {
+  display: contents;
+}
+
+.search {
+  order: 1;
+  flex: 1 1 12rem;
+  max-width: 16rem;
+}
+
+.toggle {
+  display: none;
+}
+
+.facets {
+  order: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--av-space-2);
+  padding-bottom: var(--av-space-1);
+}
+
+.count {
+  order: 3;
+  margin: 0 0 var(--av-space-2) auto;
+  font-size: var(--av-text-sm);
+  font-weight: 600;
+  color: var(--av-color-text);
+}
+
+.extras {
+  order: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--av-space-3);
+  padding-bottom: var(--av-space-1);
+}
+
+.chips {
+  order: 5;
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  gap: var(--av-space-1) var(--av-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Narrow: search, a toggle and the count stay in the bar; the rest opens as a sheet over the map.
+@container (max-width: 47.99rem) {
+  .search {
+    flex: 1 1 0;
+    max-width: none;
+  }
+
+  .toggle {
+    order: 2;
+    display: block;
+    padding-bottom: var(--av-space-1);
+  }
+
+  .count {
+    flex: 1 1 100%;
+    margin: 0;
+  }
+
+  .panel {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--av-space-3);
+    padding: var(--av-space-3) var(--av-space-4);
+    border-bottom: 1px solid var(--av-color-border-strong);
+    background: var(--av-color-surface);
+    box-shadow: var(--av-shadow-card);
+  }
+
+  .facets,
+  .extras,
+  .chips {
+    order: 0;
+    flex: none;
+    padding-bottom: 0;
+  }
+
+  .folded {
+    display: none;
+  }
+}

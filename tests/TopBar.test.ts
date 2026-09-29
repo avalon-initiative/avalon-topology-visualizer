@@ -11,6 +11,7 @@ const props = (extra: Record<string, unknown> = {}) => ({
   controlsOpen: true,
   status: '',
   stats: [],
+  reducedMotion: false,
   ...extra,
 })
 const names = (w: ReturnType<typeof mount>) => w.findAll('button').map((b) => b.text())
@@ -56,5 +57,14 @@ describe('TopBar', () => {
 
   it('keeps the walk form in the page when folded (narrow screens hide it with CSS only)', () => {
     expect(mount(TopBar, { props: props({ controlsOpen: false }) }).find('form input[type="text"]').exists()).toBe(true)
+  })
+
+  it('keeps the reduce-motion switch in the bar, showing the current state and asking to flip', async () => {
+    const w = mount(TopBar, { props: props({ reducedMotion: true }) })
+    const box = w.get('[data-testid="motion-toggle"] input')
+    expect((box.element as HTMLInputElement).checked).toBe(true)
+    expect(w.get('[data-testid="motion-toggle"]').text()).toContain('Reduce motion')
+    await box.setValue(false)
+    expect(w.emitted('toggleMotion')).toHaveLength(1)
   })
 })

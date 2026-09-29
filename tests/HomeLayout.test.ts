@@ -54,8 +54,8 @@ describe('Home layout', () => {
   it('puts the tools in a sidebar with one tab per section, the time-lapse first', async () => {
     const w = await walked()
     const tabs = w.findAll('[role="tab"]').map((t) => t.text())
-    expect(tabs.map((t) => t.replace(/\d+$/, ''))).toEqual(['Time-lapse', 'Filters', 'Measure', 'Trace', 'Alerts'])
-    expect(w.get('#tool-sidebar').findAll('[role="tabpanel"]')).toHaveLength(5)
+    expect(tabs.map((t) => t.replace(/\d+$/, ''))).toEqual(['Time-lapse', 'Measure', 'Trace', 'Alerts'])
+    expect(w.get('#tool-sidebar').findAll('[role="tabpanel"]')).toHaveLength(4)
     w.unmount()
   })
 
@@ -135,7 +135,7 @@ describe('Home layout', () => {
       await select(w, 'http://b')
       const stage = canvas(w).element.parentElement!
       expect(stage.contains(drawer(w).element)).toBe(false)
-      expect(stage.parentElement).toBe(drawer(w).element.closest('main'))
+      expect(stage.parentElement?.parentElement).toBe(drawer(w).element.closest('main'))
       w.unmount()
     })
 

@@ -5,7 +5,9 @@ import type { MergedGraph } from '../utils/mergeGraph'
 import type { NodeFacts } from '../utils/nodeFacts'
 import { alertKindsByNode, deriveAlerts } from '../utils/alerts'
 import { applyVisibility } from '../utils/filterGraph'
-import { filterOptions, filtersActive, NO_FILTERS, toggleValue, visibleNodes } from '../utils/filters'
+import { filterChips, setFacet, withoutChip } from '../utils/filterChips'
+import type { FilterChip } from '../utils/filterChips'
+import { filterOptions, filtersActive, NO_FILTERS, visibleNodes } from '../utils/filters'
 import type { FilterFacet, FilterMode, Filters } from '../utils/filters'
 import type { DetailRow } from '../utils/nodeDetail'
 import { nodeReportRows } from '../utils/nodeReport'
@@ -38,8 +40,15 @@ export function useTopologyExtras(s: ExtrasSources) {
   const visible = computed(() => visibleNodes(s.facts.value, filters.value))
   const shownCount = computed(() => (visible.value ? visible.value.size : Object.keys(s.facts.value).length))
   const filterOn = computed(() => filtersActive(filters.value))
-  const toggleFilter = (facet: FilterFacet, value: string) => {
-    filters.value = toggleValue(filters.value, facet, value)
+  const chips = computed(() => filterChips(filters.value))
+  const setFacetValues = (facet: FilterFacet, values: string[]) => {
+    filters.value = setFacet(filters.value, facet, values)
+  }
+  const setSearch = (text: string) => {
+    filters.value = { ...filters.value, search: text }
+  }
+  const removeChip = (chip: FilterChip) => {
+    filters.value = withoutChip(filters.value, chip)
   }
   const clearFilters = () => {
     filters.value = { ...NO_FILTERS }
@@ -61,5 +70,5 @@ export function useTopologyExtras(s: ExtrasSources) {
     return node ? [...history.rowsFor(node.url), ...nodeReportRows(node)] : []
   })
 
-  return { alerts, filters, filterMode, options, filterOn, shownCount, toggleFilter, clearFilters, drawing, motion, pulse, detailExtra }
+  return { alerts, filters, filterMode, options, filterOn, shownCount, chips, setFacetValues, setSearch, removeChip, clearFilters, drawing, motion, pulse, detailExtra }
 }
