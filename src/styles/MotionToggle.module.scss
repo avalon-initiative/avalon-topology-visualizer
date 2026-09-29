@@ -1,8 +1,5 @@
-.toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--av-space-2);
-  margin-top: var(--av-space-3);
-  font-size: var(--av-text-sm);
-  color: var(--av-color-text-secondary);
+.wrap {
+  margin-top: var(--av-space-4);
+  padding-top: var(--av-space-3);
+  border-top: 1px solid var(--av-color-border);
 }

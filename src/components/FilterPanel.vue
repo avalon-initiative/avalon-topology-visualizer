@@ -2,6 +2,8 @@
 import { AvalonButton, AvalonTextField } from '@avalon-initiative/common-ui'
 import type { FilterFacet, FilterMode, Filters } from '../utils/filters'
 import styles from '../styles/FilterPanel.module.scss'
+import ToggleSwitch from './ToggleSwitch.vue'
+import { shortValue } from '../utils/shortValue'
 
 defineProps<{
   filters: Filters
@@ -23,21 +25,25 @@ const facets: { key: FilterFacet; label: string }[] = [
 
 <template>
   <section :class="styles.panel" aria-label="Filters" data-testid="filters">
-    <AvalonTextField :model-value="filters.search" label="Search by URL" placeholder="host or part of a URL" @update:model-value="$emit('search', $event)" />
-    <fieldset v-for="facet in facets" v-show="options[facet.key].length" :key="facet.key" :class="styles.facet">
-      <legend :class="styles.legend">{{ facet.label }}</legend>
-      <label v-for="value in options[facet.key]" :key="value" :class="styles.choice">
-        <input type="checkbox" :checked="filters[facet.key].includes(value)" @change="$emit('toggle', facet.key, value)" />
-        {{ value }}
-      </label>
-    </fieldset>
-    <div :class="styles.footer">
-      <label :class="styles.choice">
-        <input type="checkbox" :checked="mode === 'hide'" @change="$emit('mode', mode === 'hide' ? 'dim' : 'hide')" />
-        Hide filtered nodes instead of dimming them
-      </label>
+    <div :class="styles.summary">
       <span :class="styles.count" role="status">Showing {{ shown }} of {{ total }} nodes</span>
       <AvalonButton v-if="active" label="Clear filters" variant="secondary" @click="$emit('clear')" />
     </div>
+    <AvalonTextField :model-value="filters.search" label="Search by URL" placeholder="host or part of a URL" @update:model-value="$emit('search', $event)" />
+    <fieldset v-for="facet in facets" v-show="options[facet.key].length" :key="facet.key" :class="styles.facet">
+      <legend :class="styles.legend">{{ facet.label }}</legend>
+      <label v-for="value in options[facet.key]" :key="value" :class="styles.choice" :title="value">
+        <input type="checkbox" :checked="filters[facet.key].includes(value)" @change="$emit('toggle', facet.key, value)" />
+        {{ shortValue(value) }}
+      </label>
+    </fieldset>
+    <p :class="styles.hint">Pick values to keep. A node must match every group you use, and any one value within a group.</p>
+    <ToggleSwitch
+      :model-value="mode === 'hide'"
+      label="Hide non-matching nodes"
+      :description="mode === 'hide' ? 'Non-matching nodes are removed from the map.' : 'Non-matching nodes stay on the map, dimmed.'"
+      data-testid="hide-toggle"
+      @update:model-value="$emit('mode', $event ? 'hide' : 'dim')"
+    />
   </section>
 </template>
