@@ -206,3 +206,21 @@ describe('nodeLabel', () => {
     expect(VIEWER_LABEL).toBe('You (viewer-observed)')
   })
 })
+
+describe('link labels', () => {
+  const labelled: LinkStyle[] = [{ kind: 'active', a: 'http://a:1', b: 'http://b:2', width: 1.5, alpha: 1, label: '12 ms by a:1' }]
+
+  it('writes the label at the middle of the line, above it', () => {
+    const r = recorder()
+    drawGraph(r.ctx, { ...base, linkStyles: labelled })
+    const texts = r.of('fillText').map((c) => c.args)
+    expect(texts).toContainEqual(['12 ms by a:1', 60, 45 - 4])
+  })
+
+  it('writes nothing for an unlabelled link, or one whose end is not placed', () => {
+    const r = recorder()
+    drawGraph(r.ctx, { ...base, linkStyles: [{ ...labelled[0], label: undefined }, { ...labelled[0], b: 'http://gone' }] })
+    expect(r.of('fillText').map((c) => c.args[0])).not.toContain('12 ms by a:1')
+    expect(r.of('fillText')).toHaveLength(2)
+  })
+})

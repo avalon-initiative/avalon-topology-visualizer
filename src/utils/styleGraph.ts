@@ -25,6 +25,8 @@ export interface LinkStyle {
   /** Line width in pixels and opacity, from how many samples back the measurement and how much was lost. */
   width: number
   alpha: number
+  /** Text drawn at the middle of the line, for a value measured on it. */
+  label?: string
 }
 
 const MIN_VISIBLE_LAG = 0.08

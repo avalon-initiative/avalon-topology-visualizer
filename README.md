@@ -84,6 +84,18 @@ the nodes that link to it without shoving the others.
   so nothing depends on colour alone. Click a node to see everything it reported
   and every link it is on.
 
+## Probing two nodes
+
+Select a node and use it as the first end, select another and use it as the
+second, then **Measure distance**: the first node is asked (`POST /nodes/probe`,
+3 samples, median) to time its own round trip to the second. The value is drawn
+on the link between them, labelled with the node that measured it, and pulls the
+two nodes to that distance in the layout. **Probe a random neighbor pair** picks
+a node the walk read and one of its listed neighbors. A node can only probe a
+peer in its own peer table; an unknown target, a timeout, a node that could not
+reach the target and a rate limit each get their own message, and after a 429
+the action stays disabled with a countdown until `Retry-After` has passed.
+
 ## Viewer measurements
 
 **Measure from this browser** times this browser's own requests to every node

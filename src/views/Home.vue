@@ -6,21 +6,27 @@ import NodeIssueList from '../components/NodeIssueList.vue'
 import ScaleBar from '../components/ScaleBar.vue'
 import TracePanel from '../components/TracePanel.vue'
 import TopologyCanvas from '../components/TopologyCanvas.vue'
+import ProbePanel from '../components/ProbePanel.vue'
 import ViewerRttPanel from '../components/ViewerRttPanel.vue'
 import styles from '../styles/Home.module.scss'
 import { useCrawler } from '../composables/useCrawler'
 import { useCrawlerForm } from '../composables/useCrawlerForm'
 import { useGraphStyle } from '../composables/useGraphStyle'
+import { useProbe } from '../composables/useProbe'
 import { useTrace } from '../composables/useTrace'
 import { useViewerRtt } from '../composables/useViewerRtt'
 import { CANVAS_HEIGHT, CANVAS_WIDTH, useLayout } from '../composables/useLayout'
+import { computed } from 'vue'
 import { describeFailure } from '../utils/describeFailure'
 
 const crawler = useCrawler()
 const { phase, merged, progress, error, takenAt, isLive } = crawler
 const viewerRtt = useViewerRtt(merged)
-const { layout, pinned, view, bar, pin, unpin } = useLayout(merged, viewerRtt.links)
-const { selected, nodeStyles, links: linkStyles, detail } = useGraphStyle(merged, viewerRtt.drawLinks)
+const probe = useProbe(merged, () => selected.value)
+const extraLayoutLinks = computed(() => [...viewerRtt.links.value, ...probe.links.value])
+const extraDrawLinks = computed(() => [...viewerRtt.drawLinks.value, ...probe.drawLinks.value])
+const { layout, pinned, view, bar, pin, unpin } = useLayout(merged, extraLayoutLinks)
+const { selected, nodeStyles, links: linkStyles, detail } = useGraphStyle(merged, extraDrawLinks)
 const { seedUrl, refreshSeconds, walk, onFile, save } = useCrawlerForm(crawler, import.meta.env.VITE_AVALON_SEED_URL ?? '')
 const tracer = useTrace({ target: selected, defaultEntry: () => seedUrl.value })
 </script>
@@ -100,6 +106,22 @@ const tracer = useTrace({ target: selected, defaultEntry: () => seedUrl.value })
           @speed="tracer.changeSpeed"
         />
         <NodeDetailPanel v-if="detail" :title="detail.title" :rows="detail.rows" />
+        <ProbePanel
+          :from="probe.from.value"
+          :to="probe.to.value"
+          :selected="selected"
+          :busy="probe.busy.value"
+          :can-probe="probe.canProbe.value"
+          :can-random="probe.canRandom.value"
+          :cooldown="probe.cooldown.value"
+          :message="probe.message.value"
+          :last="probe.last.value"
+          :probes="probe.probes.value"
+          @pick-first="probe.pickFirst"
+          @pick-second="probe.pickSecond"
+          @measure="probe.measure"
+          @random="probe.measureRandom"
+        />
         <GraphLegend v-if="layout" />
         <NodeIssueList
           title="Rate limited"
