@@ -6,15 +6,18 @@ export interface View {
   ty: number
 }
 
-/** Scales and centres the layout to fit a canvas, never enlarging past 1 so a small graph is not blown up. */
-export function fitView(positions: Record<string, Point>, width: number, height: number, padding = 40): View {
+/** The most a small graph is zoomed in, so a tight cluster stays readable without a lone node blowing up. */
+export const MAX_FIT_SCALE = 3
+
+/** Scales and centres the layout to fit a canvas, zooming in no further than MAX_FIT_SCALE. */
+export function fitView(positions: Record<string, Point>, width: number, height: number, padding = 70): View {
   const points = Object.values(positions)
   if (points.length === 0) return { scale: 1, tx: width / 2, ty: height / 2 }
   const xs = points.map((p) => p.x)
   const ys = points.map((p) => p.y)
   const spanX = Math.max(...xs) - Math.min(...xs)
   const spanY = Math.max(...ys) - Math.min(...ys)
-  const scale = Math.min(1, (width - 2 * padding) / Math.max(spanX, 1), (height - 2 * padding) / Math.max(spanY, 1))
+  const scale = Math.min(MAX_FIT_SCALE, (width - 2 * padding) / Math.max(spanX, 1), (height - 2 * padding) / Math.max(spanY, 1))
   const cx = (Math.max(...xs) + Math.min(...xs)) / 2
   const cy = (Math.max(...ys) + Math.min(...ys)) / 2
   return { scale, tx: width / 2 - cx * scale, ty: height / 2 - cy * scale }
