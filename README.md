@@ -12,8 +12,9 @@ one graph, lays it out by measured round trip, and lists the nodes it could not
 reach. The probe and trace views are tracked in the issues under the v1
 epic.
 
-The protocol, its architecture docs, and design decisions live in
-[`avalon-protocol`](https://github.com/avalon-initiative/avalon-protocol).
+The protocol implementation lives in
+[`avalon-protocol`](https://github.com/avalon-initiative/avalon-protocol); its architecture docs and
+design decisions live in [`avalon-docs`](https://github.com/avalon-initiative/avalon-docs).
 
 ## What it is
 
