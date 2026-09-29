@@ -7,6 +7,8 @@ export interface DetailRow {
   label: string
   value: string
   mono?: boolean
+  /** A long, multi-line value shown as preformatted text under its label. */
+  block?: boolean
 }
 
 const other = (link: { a: string; b: string }, url: string) => (link.a === url ? link.b : link.a)

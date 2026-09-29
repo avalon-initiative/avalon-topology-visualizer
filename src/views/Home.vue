@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { AvalonButton, AvalonCard, AvalonTextField, AvalonWarningBanner } from '@avalon-initiative/common-ui'
+import AlertList from '../components/AlertList.vue'
+import FilterPanel from '../components/FilterPanel.vue'
+import MotionToggle from '../components/MotionToggle.vue'
 import GraphLegend from '../components/GraphLegend.vue'
 import NodeDetailPanel from '../components/NodeDetailPanel.vue'
 import NodeIssueList from '../components/NodeIssueList.vue'
@@ -13,6 +16,7 @@ import styles from '../styles/Home.module.scss'
 import { useCrawler } from '../composables/useCrawler'
 import { useCrawlerForm } from '../composables/useCrawlerForm'
 import { useGraphStyle } from '../composables/useGraphStyle'
+import { useTopologyExtras } from '../composables/useTopologyExtras'
 import { useProbe } from '../composables/useProbe'
 import { useTimelapse } from '../composables/useTimelapse'
 import { useTweenedPositions } from '../composables/useTweenedPositions'
@@ -32,8 +36,18 @@ const probe = useProbe(merged, () => selected.value)
 const extraLayoutLinks = computed(() => [...viewerRtt.links.value, ...probe.links.value])
 const extraDrawLinks = computed(() => [...viewerRtt.drawLinks.value, ...probe.drawLinks.value])
 const { layout, pinned, bar, pin, unpin } = useLayout(merged, extraLayoutLinks)
-const { selected, nodeStyles, links: linkStyles, detail } = useGraphStyle(merged, extraDrawLinks)
+const { selected, facts, nodeStyles, links: linkStyles, detail } = useGraphStyle(merged, extraDrawLinks)
 const animated = useTweenedPositions(computed(() => layout.value?.positions), timelapse.replaying, CANVAS_WIDTH, CANVAS_HEIGHT)
+const extras = useTopologyExtras({
+  merged,
+  facts,
+  positions: computed(() => animated.positions.value ?? {}),
+  linkStyles,
+  nodeStyles,
+  selected,
+  viewerBook: viewerRtt.book,
+  pulsesLive: computed(() => isLive.value && !timelapse.replaying.value),
+})
 const { seedUrl, refreshSeconds, walk, onFile, save } = useCrawlerForm(crawler, import.meta.env.VITE_AVALON_SEED_URL ?? '')
 const tracer = useTrace({ target: selected, defaultEntry: () => seedUrl.value })
 </script>
@@ -100,10 +114,11 @@ const tracer = useTrace({ target: selected, defaultEntry: () => seedUrl.value })
         </dl>
         <TopologyCanvas
           v-if="layout"
-          :positions="animated.positions.value"
+          :positions="extras.drawing.value.positions"
           :links="[...merged.links, ...viewerRtt.drawLinks.value]"
-          :link-styles="linkStyles"
-          :node-styles="nodeStyles"
+          :link-styles="extras.drawing.value.linkStyles"
+          :node-styles="extras.drawing.value.nodeStyles"
+          :pulse="extras.pulse.value"
           :pinned="pinned"
           :selected="selected"
           :view="animated.view.value"
@@ -115,6 +130,20 @@ const tracer = useTrace({ target: selected, defaultEntry: () => seedUrl.value })
           @select="selected = $event"
         />
         <ScaleBar :px="bar.px" :ms="bar.ms" />
+        <MotionToggle :reduced="extras.motion.reduced.value" @toggle="extras.motion.toggle" />
+        <FilterPanel
+          :filters="extras.filters.value"
+          :options="extras.options.value"
+          :mode="extras.filterMode.value"
+          :active="extras.filterOn.value"
+          :shown="extras.shownCount.value"
+          :total="merged.nodes.length"
+          @toggle="extras.toggleFilter"
+          @search="extras.filters.value = { ...extras.filters.value, search: $event }"
+          @mode="extras.filterMode.value = $event"
+          @clear="extras.clearFilters"
+        />
+        <AlertList :alerts="extras.alerts.value" @select="selected = $event" />
         <ViewerRttPanel :summaries="viewerRtt.summaries.value" :ranking="viewerRtt.ranking.value" :running="viewerRtt.running.value" @toggle="viewerRtt.toggle" />
         <TracePanel
           v-model:entry="tracer.entryInput.value"
@@ -129,7 +158,7 @@ const tracer = useTrace({ target: selected, defaultEntry: () => seedUrl.value })
           @pause="tracer.togglePause"
           @speed="tracer.changeSpeed"
         />
-        <NodeDetailPanel v-if="detail" :title="detail.title" :rows="detail.rows" />
+        <NodeDetailPanel v-if="detail" :title="detail.title" :rows="[...detail.rows, ...extras.detailExtra.value]" />
         <ProbePanel
           :from="probe.from.value"
           :to="probe.to.value"

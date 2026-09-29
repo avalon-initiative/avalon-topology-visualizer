@@ -100,3 +100,21 @@
   stroke: var(--av-color-warning);
   stroke-width: 2.5;
 }
+
+.pulse {
+  fill: var(--av-color-success);
+}
+
+.badgeDanger {
+  fill: var(--av-color-danger);
+}
+
+.badgeWarning {
+  fill: var(--av-color-warning);
+}
+
+.badgeText {
+  fill: var(--av-color-bg);
+  font-size: 9px;
+  font-weight: 700;
+}

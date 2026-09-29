@@ -2,10 +2,12 @@ import { ROLE_LABELS, shapePoints } from './shapes'
 import type { NodeShape } from './shapes'
 import type { LinkKind } from './styleGraph'
 import type { VersionState } from './nodeFacts'
+import type { AlertKind } from './alerts'
 
 export type LegendGlyph =
   | { type: 'link'; kind: LinkKind }
-  | { type: 'node'; shape: NodeShape; hollow?: boolean; dimmed?: boolean; version?: VersionState; lag?: number; pinned?: boolean }
+  | { type: 'node'; shape: NodeShape; hollow?: boolean; dimmed?: boolean; version?: VersionState; lag?: number; pinned?: boolean; alert?: AlertKind }
+  | { type: 'pulse' }
 
 export interface LegendItem {
   id: string
@@ -49,6 +51,14 @@ export function legendGroups(): LegendGroup[] {
         { id: 'unread', label: 'Not read: unreachable or not visited (outline only)', glyph: { type: 'node', shape: 'circle', hollow: true } },
         { id: 'lag', label: 'Behind on mirrored data (arc; longer means further behind)', glyph: { type: 'node', shape: 'circle', lag: 0.5 } },
         { id: 'pinned', label: 'Pinned by you (heavy outer ring)', glyph: { type: 'node', shape: 'circle', pinned: true } },
+      ],
+    },
+    {
+      title: 'Alerts and changes',
+      items: [
+        { id: 'alert-equivocation', label: 'Open equivocation finding (red badge marked !)', glyph: { type: 'node', shape: 'circle', alert: 'equivocation' } },
+        { id: 'alert-stale', label: 'Node reports itself stale (amber badge marked S)', glyph: { type: 'node', shape: 'circle', alert: 'stale' } },
+        { id: 'pulse', label: 'Changed since the last refresh: a node announced or a tree head advanced (a dot runs along the link; with reduced motion, a dashed green line)', glyph: { type: 'pulse' } },
       ],
     },
   ]

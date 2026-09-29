@@ -224,3 +224,85 @@ describe('link labels', () => {
     expect(r.of('fillText')).toHaveLength(2)
   })
 })
+
+describe('drawGraph alerts, filters and pulses', () => {
+  const style = (over: Partial<NodeStyle> = {}): NodeStyle => ({ shape: 'circle', hollow: false, dimmed: false, version: 'unknown', lag: 0, ...over })
+  const link = (over: Partial<LinkStyle> = {}): LinkStyle => ({ kind: 'active', a: 'http://a:1', b: 'http://b:2', width: 1.5, alpha: 1, ...over })
+  const dots = (r: ReturnType<typeof recorder>) => r.of('arc').filter((c) => c.args[2] === 3.5)
+  const alphas = (r: ReturnType<typeof recorder>) => r.of('set:globalAlpha').map((c) => c.args[0])
+
+  it('marks a node with a lettered badge per alert, next to the node', () => {
+    const r = recorder()
+    drawGraph(r.ctx, { ...base, nodeStyles: { 'http://a:1': style({ alerts: ['equivocation', 'stale'] }) } })
+    expect(r.of('fillText').map((c) => c.args[0])).toEqual(expect.arrayContaining(['!', 'S']))
+    expect(r.of('set:fillStyle').map((c) => c.args[0])).toEqual(expect.arrayContaining([DEFAULT_THEME.danger, DEFAULT_THEME.warning]))
+  })
+
+  it('letters each badge by its own kind', () => {
+    const letters = (alerts: NodeStyle['alerts']) => {
+      const r = recorder()
+      drawGraph(r.ctx, { ...base, nodeStyles: { 'http://a:1': style({ alerts }) } })
+      return r.of('fillText').map((c) => c.args[0]).filter((t) => t === '!' || t === 'S')
+    }
+    expect(letters(['equivocation'])).toEqual(['!'])
+    expect(letters(['stale'])).toEqual(['S'])
+  })
+
+  it('draws no badge without alerts', () => {
+    const r = recorder()
+    drawGraph(r.ctx, { ...base, nodeStyles: { 'http://a:1': style() } })
+    expect(r.of('fillText').map((c) => c.args[0])).not.toContain('!')
+  })
+
+  const lowest = (r: ReturnType<typeof recorder>) => Math.min(...(alphas(r) as number[]))
+
+  it('draws a faded node fainter than a normal one, and fainter than a merely stale one', () => {
+    const draw = (over: Partial<NodeStyle>) => {
+      const r = recorder()
+      drawGraph(r.ctx, { ...base, links: [], nodeStyles: { 'http://a:1': style(over) } })
+      return lowest(r)
+    }
+    expect(draw({ faded: true })).toBeLessThan(draw({}))
+    expect(draw({ faded: true })).toBeLessThan(draw({ dimmed: true }))
+  })
+
+  it('draws a faded link fainter than a normal one, even a bold one', () => {
+    const draw = (over: Partial<LinkStyle>) => {
+      const r = recorder()
+      drawGraph(r.ctx, { ...base, linkStyles: [link(over)] })
+      return alphas(r)[0] as number
+    }
+    expect(draw({ faded: true })).toBeLessThan(draw({}))
+  })
+
+  it('animates a pulse as a dot part-way along the link, and only on pulsed links', () => {
+    const r = recorder()
+    drawGraph(r.ctx, { ...base, linkStyles: [link()], pulse: { keys: new Set(['http://a:1\nhttp://b:2']), progress: 0.5 } })
+    const dot = dots(r)[0].args
+    expect(dot[0]).toBeCloseTo((10 + 110) / 2)
+    expect(dot[1]).toBeCloseTo((20 + 70) / 2)
+    const none = recorder()
+    drawGraph(none.ctx, { ...base, linkStyles: [link()], pulse: { keys: new Set(['other\nlink']), progress: 0.5 } })
+    expect(dots(none)).toHaveLength(0)
+  })
+
+  it('draws a static dashed line instead of a moving dot when progress is null', () => {
+    const r = recorder()
+    drawGraph(r.ctx, { ...base, linkStyles: [link()], pulse: { keys: new Set(['http://a:1\nhttp://b:2']), progress: null } })
+    expect(dots(r)).toHaveLength(0)
+    expect(r.of('setLineDash').some((c) => (c.args[0] as number[]).length > 0)).toBe(true)
+  })
+
+  it('draws a pulse once even when a link has both an active and a mirror line', () => {
+    const r = recorder()
+    const mirrorLine = link({ kind: 'mirror', direction: { from: 'http://a:1', to: 'http://b:2' } })
+    drawGraph(r.ctx, { ...base, linkStyles: [link(), mirrorLine], pulse: { keys: new Set(['http://a:1\nhttp://b:2']), progress: 0.25 } })
+    expect(dots(r)).toHaveLength(1)
+  })
+
+  it('does not pulse a faded link', () => {
+    const r = recorder()
+    drawGraph(r.ctx, { ...base, linkStyles: [link({ faded: true })], pulse: { keys: new Set(['http://a:1\nhttp://b:2']), progress: 0.5 } })
+    expect(dots(r)).toHaveLength(0)
+  })
+})

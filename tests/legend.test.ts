@@ -5,7 +5,7 @@ describe('legendGroups', () => {
   const items = legendGroups().flatMap((g) => g.items)
 
   it('covers links, role shapes, version rings and node states', () => {
-    expect(legendGroups().map((g) => g.title)).toEqual(['Links', 'Node role (shape)', 'Protocol version (ring)', 'Node state'])
+    expect(legendGroups().map((g) => g.title)).toEqual(['Links', 'Node role (shape)', 'Protocol version (ring)', 'Node state', 'Alerts and changes'])
   })
 
   it('names every mark in words that do not depend on colour', () => {
@@ -57,5 +57,17 @@ describe('arcPath', () => {
   it('clamps so a full turn still draws', () => {
     expect(arcPath(10, 5)).toMatch(/^M 0 -10 A 10 10 0 1 1 /)
     expect(arcPath(10, -1)).toMatch(/^M 0 -10 A 10 10 0 0 1 /)
+  })
+})
+
+describe('legend alerts and changes', () => {
+  const group = legendGroups().find((g) => g.title === 'Alerts and changes')!
+
+  it('names the badges by their letter and the pulse with its reduced-motion form', () => {
+    const labels = group.items.map((i) => i.label).join(' | ')
+    expect(labels).toContain('marked !')
+    expect(labels).toContain('marked S')
+    expect(labels).toMatch(/reduced motion, a dashed/)
+    expect(group.items.map((i) => i.glyph.type)).toEqual(['node', 'node', 'pulse'])
   })
 })

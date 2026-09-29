@@ -4,6 +4,7 @@ import styles from '../styles/TopologyCanvas.module.scss'
 import { useTopologyCanvas } from '../composables/useTopologyCanvas'
 import type { TraceDrawing } from '../utils/drawTrace'
 import type { Point } from '../utils/layout'
+import type { PulseDrawing } from '../utils/pulses'
 import type { LinkStyle, NodeStyle } from '../utils/styleGraph'
 import type { View } from '../utils/viewport'
 
@@ -16,6 +17,7 @@ const props = defineProps<{
   selected?: string
   view: View
   trace?: TraceDrawing
+  pulse?: PulseDrawing
   width: number
   height: number
 }>()
@@ -33,6 +35,7 @@ const handlers = useTopologyCanvas({
   selected: () => props.selected,
   view: () => props.view,
   trace: () => props.trace,
+  pulse: () => props.pulse,
   width: props.width,
   height: props.height,
   onPin: (id, at) => emit('pin', id, at),
