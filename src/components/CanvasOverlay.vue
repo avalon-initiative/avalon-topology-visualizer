@@ -2,8 +2,8 @@
 import { AvalonButton } from '@avalon-initiative/common-ui'
 import styles from '../styles/CanvasOverlay.module.scss'
 
-defineProps<{ legendOpen: boolean }>()
-defineEmits<{ toggleLegend: [] }>()
+defineProps<{ legendOpen: boolean; panned?: boolean }>()
+defineEmits<{ toggleLegend: []; resetView: [] }>()
 </script>
 
 <template>
@@ -23,6 +23,7 @@ defineEmits<{ toggleLegend: [] }>()
           :aria-expanded="legendOpen"
           @click="$emit('toggleLegend')"
         />
+        <AvalonButton v-if="panned" label="Reset view" variant="secondary" @click="$emit('resetView')" />
         <slot name="scale" />
       </div>
     </div>
