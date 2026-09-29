@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { AvalonToggleSwitch } from '@avalon-initiative/common-ui'
 import styles from '../styles/MotionToggle.module.scss'
-import ToggleSwitch from './ToggleSwitch.vue'
 
 defineProps<{ reduced: boolean }>()
 defineEmits<{ toggle: [] }>()
@@ -8,7 +8,7 @@ defineEmits<{ toggle: [] }>()
 
 <template>
   <div :class="styles.wrap">
-    <ToggleSwitch
+    <AvalonToggleSwitch
       :model-value="reduced"
       label="Reduce motion"
       description="Changes show as static markers instead of pulses."

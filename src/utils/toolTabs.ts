@@ -1,4 +1,4 @@
-import type { ToolTab } from './tabs'
+import type { AvalonTab } from '@avalon-initiative/common-ui'
 
 export type ToolTabId = 'timelapse' | 'filters' | 'measure' | 'trace' | 'issues'
 
@@ -12,7 +12,7 @@ export interface ToolTabState {
 }
 
 /** The sidebar's tabs. Everything but the time-lapse needs a graph; badges are text so state never rides on colour. */
-export function toolTabs(s: ToolTabState): ToolTab<ToolTabId>[] {
+export function toolTabs(s: ToolTabState): (AvalonTab & { id: ToolTabId })[] {
   const needsGraph = !s.hasGraph
   return [
     { id: 'timelapse', label: 'Time-lapse', ...(s.replaying ? { badge: 'Replay' } : s.snapshots > 0 ? { badge: String(s.snapshots) } : {}) },

@@ -1,37 +1,3 @@
-.legend {
-  columns: 3 11rem;
-  column-gap: var(--av-space-4);
-}
-
-.group {
-  margin-bottom: var(--av-space-2);
-  break-inside: avoid;
-}
-
-.title {
-  margin-bottom: var(--av-space-1);
-  font-size: var(--av-text-xs);
-  font-weight: 600;
-  color: var(--av-color-text-secondary);
-}
-
-.items {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.item {
-  display: flex;
-  align-items: center;
-  gap: var(--av-space-2);
-  font-size: var(--av-text-xs);
-  color: var(--av-color-text-secondary);
-}
-
 .glyph {
   flex-shrink: 0;
   width: 1.75rem;

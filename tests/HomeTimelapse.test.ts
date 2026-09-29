@@ -49,7 +49,7 @@ describe('Home time-lapse', () => {
     const wrapper = await begin()
     await walk(wrapper, one)
     await walk(wrapper, two)
-    const ticks = wrapper.findAll('[data-testid="tick-label"]').map((t) => t.text())
+    const ticks = wrapper.findAll('[data-testid="timeline-note"]').map((t) => t.text())
     expect(ticks).toEqual(['first', '+1'])
     expect(wrapper.find('[data-testid="timeline-mode"]').text()).toMatch(/^Live/)
     expect(visitedCount(wrapper)).toBe('2')
@@ -60,7 +60,7 @@ describe('Home time-lapse', () => {
     expect(wrapper.text()).not.toContain('Live walk from')
 
     await walk(wrapper, three)
-    expect(wrapper.findAll('[data-testid="tick-label"]')).toHaveLength(3)
+    expect(wrapper.findAll('[data-testid="timeline-note"]')).toHaveLength(3)
     expect(visitedCount(wrapper)).toBe('1')
 
     const live = wrapper.findAll('button').find((b) => b.text() === 'Back to live')!
@@ -87,7 +87,7 @@ describe('Home time-lapse', () => {
     Object.defineProperty(inputs[1].element, 'files', { value: [file], configurable: true })
     await inputs[1].trigger('change')
     await flushPromises()
-    expect(fresh.findAll('[data-testid="tick-label"]')).toHaveLength(2)
+    expect(fresh.findAll('[data-testid="timeline-note"]')).toHaveLength(2)
     expect(visitedCount(fresh)).toBe('1')
   })
 
@@ -106,7 +106,7 @@ describe('Home time-lapse', () => {
     const wrapper = await begin()
     await walk(wrapper, one)
     await walk(wrapper, two)
-    expect(wrapper.findAll('[data-testid="tick-label"]')).toHaveLength(2)
+    expect(wrapper.findAll('[data-testid="timeline-note"]')).toHaveLength(2)
     expect(wrapper.find('[data-testid="timeline-unsaved"]').exists()).toBe(true)
     expect(visitedCount(wrapper)).toBe('2')
   })

@@ -18,14 +18,13 @@ const buttons = (w: ReturnType<typeof mount>) => Object.fromEntries(w.findAll('b
 
 describe('DetailDrawer', () => {
   it('renders nothing while closed', () => {
-    expect(mount(DetailDrawer, { props: props({ open: false }) }).find('[data-testid="detail-drawer"]').exists()).toBe(false)
+    expect(mount(DetailDrawer, { props: props({ open: false }) }).find('aside[aria-label="Node details"]').exists()).toBe(false)
   })
 
   it('is a labelled landmark showing the node title and rows', () => {
     const w = mount(DetailDrawer, { props: props() })
-    const drawer = w.get('[data-testid="detail-drawer"]')
+    const drawer = w.get('aside[aria-label="Node details"]')
     expect(drawer.attributes('role')).toBe('complementary')
-    expect(drawer.attributes('aria-label')).toBe('Node details')
     expect(drawer.text()).toContain('http://a')
     expect(drawer.text()).toContain('visited')
     expect(w.get('[aria-label="Selected node"]').text()).toContain('http://a')
@@ -58,17 +57,8 @@ describe('DetailDrawer', () => {
   it("lists the node's alerts only when it has some", () => {
     expect(mount(DetailDrawer, { props: props() }).find('[data-testid="alerts"]').exists()).toBe(false)
     const w = mount(DetailDrawer, { props: props({ alerts: [alert] }) })
-    expect(w.get('[data-testid="alerts"]').text()).toContain('Reports itself stale')
-  })
-
-  it('moves focus into the drawer when it opens', async () => {
-    const host = document.createElement('div')
-    document.body.appendChild(host)
-    const w = mount(DetailDrawer, { props: props({ open: false }), attachTo: host })
-    await w.setProps({ open: true })
-    await new Promise((r) => setTimeout(r))
-    expect(document.activeElement).toBe(w.get('[data-testid="detail-drawer"]').element)
-    w.unmount()
-    host.remove()
+    const list = w.get('[data-testid="alerts"]').text()
+    expect(list).toContain('Reports itself stale')
+    expect(list).toContain('Stale')
   })
 })

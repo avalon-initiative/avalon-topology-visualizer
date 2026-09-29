@@ -36,18 +36,18 @@ describe('TimelinePanel', () => {
   })
 
   it('marks joins, departures and version changes as text on the ticks', () => {
-    const labels = panel().findAll('[data-testid="tick-label"]').map((t) => t.text())
+    const labels = panel().findAll('[data-testid="timeline-note"]').map((t) => t.text())
     expect(labels).toEqual(['first', '+2', '-1 ~1'])
   })
 
   it('numbers each snapshot so it is clear what to click', () => {
     const w = panel()
-    expect(w.findAll('[data-testid="tick-number"]').map((t) => t.text())).toEqual(['1', '2', '3'])
+    expect(w.findAll('[data-testid="timeline-number"]').map((t) => t.text())).toEqual(['1', '2', '3'])
   })
 
   it('says "no change" for an unchanged snapshot after the first, and never leaves a tick blank', () => {
     const w = panel({ markers: [marker(0), marker(1), marker(2, 1)] })
-    expect(w.findAll('[data-testid="tick-label"]').map((t) => t.text())).toEqual(['first', 'no change', '+1'])
+    expect(w.findAll('[data-testid="timeline-note"]').map((t) => t.text())).toEqual(['first', 'no change', '+1'])
   })
 
   it('tags only the newest snapshot as latest', () => {

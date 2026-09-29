@@ -1,36 +1,8 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import AlertList from '../src/components/AlertList.vue'
 import FilterPanel from '../src/components/FilterPanel.vue'
 import MotionToggle from '../src/components/MotionToggle.vue'
 import { NO_FILTERS } from '../src/utils/filters'
-import type { Alert } from '../src/utils/alerts'
-
-const alerts: Alert[] = [
-  { id: 'e1', kind: 'equivocation', url: 'http://a', title: 'Open equivocation on shard s1', detail: 'Sources x and y disagree at tree size 7' },
-  { id: 's1', kind: 'stale', url: 'http://b', title: 'Reports itself stale', detail: 'behind' },
-]
-
-describe('AlertList', () => {
-  it('renders nothing without alerts', () => {
-    expect(mount(AlertList, { props: { alerts: [] } }).find('section').exists()).toBe(false)
-  })
-
-  it('names each alert by kind in words, with its URL and detail, and counts them', () => {
-    const wrapper = mount(AlertList, { props: { alerts } })
-    expect(wrapper.find('h3').text()).toBe('Alerts (2)')
-    const items = wrapper.findAll('li')
-    expect(items[0].text()).toContain('Equivocation')
-    expect(items[0].text()).toContain('tree size 7')
-    expect(items[1].text()).toContain('Stale')
-  })
-
-  it('selects the node when its URL is clicked', async () => {
-    const wrapper = mount(AlertList, { props: { alerts } })
-    await wrapper.findAll('button')[1].trigger('click')
-    expect(wrapper.emitted('select')).toEqual([['http://b']])
-  })
-})
 
 describe('FilterPanel', () => {
   const options = { roles: ['gateway', 'hoster'], networkIds: ['net-a'], versions: [], shards: ['s1'] }

@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { AvalonWarningBanner } from '@avalon-initiative/common-ui'
+import { AvalonIssueList, AvalonWarningBanner } from '@avalon-initiative/common-ui'
 import { computed, ref } from 'vue'
-import AlertList from '../components/AlertList.vue'
 import AppShell from '../components/AppShell.vue'
 import CanvasOverlay from '../components/CanvasOverlay.vue'
 import DetailDrawer from '../components/DetailDrawer.vue'
 import FilterPanel from '../components/FilterPanel.vue'
 import GraphLegend from '../components/GraphLegend.vue'
 import MotionToggle from '../components/MotionToggle.vue'
-import NodeIssueList from '../components/NodeIssueList.vue'
 import ProbePanel from '../components/ProbePanel.vue'
 import ScaleBar from '../components/ScaleBar.vue'
 import TimelinePanel from '../components/TimelinePanel.vue'
@@ -32,6 +30,7 @@ import { useTweenedPositions } from '../composables/useTweenedPositions'
 import { useViewerRtt } from '../composables/useViewerRtt'
 import { useWorkspace } from '../composables/useWorkspace'
 import { describeFailure } from '../utils/describeFailure'
+import { alertIssues, alertUrl, nodeIssues } from '../utils/issueItems'
 import { summaryStats } from '../utils/summaryStats'
 import { toolTabs } from '../utils/toolTabs'
 
@@ -195,9 +194,9 @@ function probeSecond() {
         </template>
         <template #issues>
           <template v-if="merged">
-            <AlertList :alerts="extras.alerts.value" @select="selected = $event" />
-            <NodeIssueList title="Rate limited" tone="warning" :items="rateLimited" />
-            <NodeIssueList title="Unreachable" tone="danger" :items="unreachable" />
+            <AvalonIssueList title="Alerts" label="Alerts" :items="alertIssues(extras.alerts.value)" selectable data-testid="alerts" @select="selected = alertUrl(extras.alerts.value, $event) ?? selected" />
+            <AvalonIssueList title="Rate limited" :items="nodeIssues(rateLimited, 'warning')" />
+            <AvalonIssueList title="Unreachable" :items="nodeIssues(unreachable, 'danger')" />
             <p v-if="issueCount === 0" :class="styles.note" data-testid="no-issues">No alerts and no unreachable nodes.</p>
           </template>
         </template>

@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { AvalonButton, AvalonTextField } from '@avalon-initiative/common-ui'
+import { AvalonButton, AvalonTextField, AvalonToggleSwitch } from '@avalon-initiative/common-ui'
 import type { FilterFacet, FilterMode, Filters } from '../utils/filters'
 import styles from '../styles/FilterPanel.module.scss'
-import ToggleSwitch from './ToggleSwitch.vue'
 import { shortValue } from '../utils/shortValue'
 
 defineProps<{
@@ -38,7 +37,7 @@ const facets: { key: FilterFacet; label: string }[] = [
       </label>
     </fieldset>
     <p :class="styles.hint">Pick values to keep. A node must match every group you use, and any one value within a group.</p>
-    <ToggleSwitch
+    <AvalonToggleSwitch
       :model-value="mode === 'hide'"
       label="Hide non-matching nodes"
       :description="mode === 'hide' ? 'Non-matching nodes are removed from the map.' : 'Non-matching nodes stay on the map, dimmed.'"
