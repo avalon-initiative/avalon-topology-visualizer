@@ -4,7 +4,7 @@ import { computeLayout } from '../utils/layout'
 import type { Layout, LayoutLink, Point } from '../utils/layout'
 import { toLayoutInput } from '../utils/layoutInput'
 import type { MergedGraph } from '../utils/mergeGraph'
-import { fitView, scaleBar } from '../utils/viewport'
+import { fitView } from '../utils/viewport'
 import { INITIAL_SIZE } from './useElementSize'
 import type { Size } from './useElementSize'
 
@@ -35,8 +35,7 @@ export function useLayout(merged: Ref<MergedGraph | null>, extraLinks?: Ref<Layo
   }
 
   const view = computed(() => fitView(layout.value?.positions ?? {}, size.value.width, size.value.height))
-  const bar = computed(() => (layout.value ? scaleBar(layout.value.pxPerMs, view.value) : { px: 0, ms: 0 }))
   const pinned = computed(() => new Set(Object.keys(pins.value)))
 
-  return { layout, pins, pinned, view, bar, pin, unpin }
+  return { layout, pins, pinned, view, pin, unpin }
 }

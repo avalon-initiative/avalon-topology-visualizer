@@ -75,13 +75,6 @@ describe('useLayout', () => {
     expect(api.layout.value!.positions['http://a']).not.toEqual({ x: 111, y: -222 })
   })
 
-  it('exposes a scale bar in round milliseconds that fits the canvas view', () => {
-    const { api } = make(merged(10))
-    expect(api.bar.value.ms).toBeGreaterThan(0)
-    expect([1, 2, 5]).toContain(Number(String(api.bar.value.ms)[0]))
-    expect(api.bar.value.px).toBeLessThanOrEqual(120)
-  })
-
   it('lays out independently of the canvas size; only the view follows it', () => {
     const size = ref({ width: 720, height: 480 })
     const scope = effectScope()
@@ -92,10 +85,6 @@ describe('useLayout', () => {
     expect(api.layout.value!.positions).toEqual(positions)
     expect(api.view.value).not.toEqual(view)
     expect(api.view.value.tx).toBeGreaterThan(view.tx)
-  })
-
-  it('reports no scale bar when there is no graph', () => {
-    expect(make(null).api.bar.value).toEqual({ px: 0, ms: 0 })
   })
 
   it('places the viewer by its measured links and relayouts when they change', async () => {

@@ -8,12 +8,15 @@ import type { PulseDrawing } from '../utils/pulses'
 import type { LinkStyle, NodeStyle } from '../utils/styleGraph'
 import { nodeAt, toWorld } from '../utils/viewport'
 import type { View } from '../utils/viewport'
+import { pinchStep, wheelFactor, ZOOM_STEP } from '../utils/zoom'
 
 // A pointer that moves less than this between down and up is a click, not a drag.
 const DRAG_THRESHOLD_PX = 4
 const KEY_STEP_PX = 40
 const KEY_STEP_FAST_PX = 120
 const ARROWS: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }
+
+const ZOOM_KEYS: Record<string, number> = { '+': ZOOM_STEP, '=': ZOOM_STEP, '-': 1 / ZOOM_STEP, _: 1 / ZOOM_STEP }
 
 export interface TopologyCanvasSources {
   canvas: Ref<HTMLCanvasElement | null>
@@ -35,6 +38,8 @@ export interface TopologyCanvasSources {
   onSelect: (id: string | undefined) => void
   /** Screen-pixel deltas: the view should move by this much (content follows the pointer 1:1). */
   onPan: (dx: number, dy: number) => void
+  /** Multiply the zoom by `factor`, keeping the world point under the screen point `at` where it is. */
+  onZoom: (factor: number, at: Point) => void
   onResetView: () => void
 }
 
@@ -57,12 +62,15 @@ function readTheme(): DrawTheme {
   }
 }
 
-/** Draws the graph. Click selects a node; drag pins it; drag on empty space pans; double-click releases a pin or resets the view. */
+/** Draws the graph. Click selects a node; drag pins it; drag on empty space pans; wheel or two-finger pinch zooms; double-click releases a pin or resets the view. */
 export function useTopologyCanvas(s: TopologyCanvasSources) {
   let theme = DEFAULT_THEME
   const hovered = ref<string | undefined>()
   const labelMemory = new Map<string, string>()
   const panning = ref(false)
+  // Every pointer that is down, by id; a second one turns the press into a pinch.
+  const down = new Map<number, Point>()
+  let pinch: [number, number] | undefined
   let pressed: { id: string | undefined; pointer: number; from: Point; last: Point; dragged: boolean } | undefined
 
   onMounted(() => {
@@ -108,25 +116,52 @@ export function useTopologyCanvas(s: TopologyCanvasSources) {
 
   function end(e: PointerEvent) {
     s.canvas.value?.releasePointerCapture?.(e.pointerId)
+    down.clear()
     pressed = undefined
+    pinch = undefined
     panning.value = false
   }
+
+  function pinchMove(e: PointerEvent, at: Point, ids: [number, number]) {
+    if (!down.has(e.pointerId)) return
+    const before: [Point, Point] = [down.get(ids[0])!, down.get(ids[1])!]
+    down.set(e.pointerId, at)
+    const step = pinchStep(before, [down.get(ids[0])!, down.get(ids[1])!])
+    if (step.factor !== 1) s.onZoom(step.factor, step.from)
+    if (step.to.x !== step.from.x || step.to.y !== step.from.y) s.onPan(step.to.x - step.from.x, step.to.y - step.from.y)
+  }
+
+  const centre = (): Point => ({ x: s.width() / 2, y: s.height() / 2 })
 
   return {
     cursor,
     onPointerDown(e: PointerEvent) {
-      if (pressed) return
+      if (pinch) return
       const at = local(e)
+      if (pressed && e.pointerId !== pressed.pointer) {
+        // A second finger: the press stops being a click, drag or pin and becomes a pinch.
+        pinch = [pressed.pointer, e.pointerId]
+        pressed = undefined
+        down.set(e.pointerId, at)
+        panning.value = true
+        hovered.value = undefined
+        s.canvas.value?.setPointerCapture?.(e.pointerId)
+        return
+      }
+      if (pressed) return
       pressed = { id: nodeAt(s.positions(), s.view(), at), pointer: e.pointerId, from: at, last: at, dragged: false }
+      down.set(e.pointerId, at)
       s.canvas.value?.setPointerCapture?.(e.pointerId)
     },
     onPointerMove(e: PointerEvent) {
       const at = local(e)
+      if (pinch) return pinchMove(e, at, pinch)
       if (!pressed) {
         hovered.value = nodeAt(s.positions(), s.view(), at)
         return
       }
       if (e.pointerId !== pressed.pointer) return
+      down.set(e.pointerId, at)
       if (!pressed.dragged && Math.hypot(at.x - pressed.from.x, at.y - pressed.from.y) < DRAG_THRESHOLD_PX) return
       pressed.dragged = true
       if (pressed.id) {
@@ -143,13 +178,29 @@ export function useTopologyCanvas(s: TopologyCanvasSources) {
       hovered.value = undefined
     },
     onPointerUp(e: PointerEvent) {
+      if (pinch) {
+        if (!pinch.includes(e.pointerId)) return
+        // One finger lifts: the other carries on as a plain pan from where it is, so nothing jumps and nothing selects.
+        const left = pinch[0] === e.pointerId ? pinch[1] : pinch[0]
+        const at = down.get(left)!
+        s.canvas.value?.releasePointerCapture?.(e.pointerId)
+        down.delete(e.pointerId)
+        pinch = undefined
+        pressed = { id: undefined, pointer: left, from: at, last: at, dragged: true }
+        return
+      }
       if (pressed && e.pointerId !== pressed.pointer) return
       if (pressed && !pressed.dragged) s.onSelect(pressed.id)
       end(e)
     },
     onPointerCancel(e: PointerEvent) {
-      if (pressed && e.pointerId !== pressed.pointer) return
+      if (pressed && !pinch && e.pointerId !== pressed.pointer) return
+      if (pinch) s.canvas.value?.releasePointerCapture?.(pinch[0] === e.pointerId ? pinch[1] : pinch[0])
       end(e)
+    },
+    onWheel(e: WheelEvent) {
+      const factor = wheelFactor(e)
+      if (factor !== 1) s.onZoom(factor, local(e))
     },
     onDoubleClick(e: MouseEvent) {
       const id = nodeAt(s.positions(), s.view(), local(e))
@@ -158,6 +209,13 @@ export function useTopologyCanvas(s: TopologyCanvasSources) {
     },
     onKeyDown(e: KeyboardEvent) {
       if (e.key === '0') return s.onResetView()
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        const zoom = ZOOM_KEYS[e.key]
+        if (zoom) {
+          e.preventDefault()
+          return s.onZoom(zoom, centre())
+        }
+      }
       const dir = ARROWS[e.key]
       if (!dir) return
       e.preventDefault()

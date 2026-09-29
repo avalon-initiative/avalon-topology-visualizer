@@ -50,6 +50,13 @@
   pointer-events: auto;
 }
 
+// Sits between the zoom buttons and the scale bar as a quiet readout.
+.zoom {
+  color: var(--av-color-text-muted);
+  font-size: var(--av-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
 @media (max-width: 767px) {
   .corner {
     width: calc(100% - var(--av-space-6));

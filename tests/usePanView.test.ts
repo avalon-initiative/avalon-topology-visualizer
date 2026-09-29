@@ -69,4 +69,12 @@ describe('usePanView', () => {
     size.value = { width: 120, height: 300 }
     expect(api.pan.value.dx).toBeLessThan(150)
   })
+
+  it('sets an offset outright with panTo, clamped like any other pan', () => {
+    const { api } = make()
+    api.panTo({ dx: 12, dy: -8 })
+    expect(api.pan.value).toEqual({ dx: 12, dy: -8 })
+    api.panTo({ dx: -1e6, dy: 0 })
+    expect(api.pan.value.dx).toBeGreaterThan(-400)
+  })
 })
