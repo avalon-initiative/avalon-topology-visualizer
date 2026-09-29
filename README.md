@@ -110,6 +110,20 @@ flight; a failing node is retried with exponential backoff up to 5 minutes, and
 a 429 is left alone for its `Retry-After`. Nothing is measured until started,
 and the client never writes to a node.
 
+## Packet path trace
+
+Click a node to select it, then press "Trace to selected node". The app sends one
+public trace request (through the SDK) to the entry node, which defaults to the
+seed, and animates a packet from the viewer to the entry node, hop by hop to the
+target and back. Timing comes only from the per-hop durations in the response;
+each leg to the next hop is a round trip, so it is split evenly between the way
+out and the way back, and the viewer's own legs are drawn at a fixed length.
+Replay, pause and slow motion control playback. The summary shows the hop count,
+the total time the answering node reports and the slowest hop (processing plus
+the leg to the next hop). A trace that stops early (hop limit, no route, timeout,
+loop, target unreachable) ends at its last returned hop and says why. Every hop is
+reported by the node it names, so the path is advisory and not verified.
+
 ## Snapshots
 
 **Save snapshot** downloads the current graph as JSON, and **Open snapshot**

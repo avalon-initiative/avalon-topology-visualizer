@@ -1,6 +1,8 @@
 import type { Point } from './layout'
 import { shapePoints } from './shapes'
 import { VIEWER_ID, VIEWER_LABEL } from './rttStats'
+import { drawTrace } from './drawTrace'
+import type { TraceDrawing } from './drawTrace'
 import { toScreen } from './viewport'
 import type { View } from './viewport'
 import type { LinkStyle, NodeStyle } from './styleGraph'
@@ -43,6 +45,7 @@ export interface DrawInput {
   width: number
   height: number
   theme?: DrawTheme
+  trace?: TraceDrawing
 }
 
 export const NODE_DRAW_RADIUS = 7
@@ -161,4 +164,5 @@ export function drawGraph(ctx: CanvasRenderingContext2D, input: DrawInput): void
     if (pinned.has(id)) ring(ctx, at, NODE_DRAW_RADIUS + PIN_RING_OFFSET, theme.pinned, 2.5, [])
     if (id === selected) ring(ctx, at, NODE_DRAW_RADIUS + SELECT_RING_OFFSET, theme.label, 1.5, [])
   }
+  if (input.trace) drawTrace(ctx, input.trace, positions, view, theme)
 }

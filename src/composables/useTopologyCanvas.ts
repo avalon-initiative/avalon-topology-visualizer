@@ -2,6 +2,7 @@ import { onBeforeUnmount, onMounted, watchEffect } from 'vue'
 import type { Ref } from 'vue'
 import { DEFAULT_THEME, drawGraph } from '../utils/drawGraph'
 import type { DrawTheme } from '../utils/drawGraph'
+import type { TraceDrawing } from '../utils/drawTrace'
 import type { Point } from '../utils/layout'
 import type { LinkStyle, NodeStyle } from '../utils/styleGraph'
 import { nodeAt, toWorld } from '../utils/viewport'
@@ -19,6 +20,7 @@ export interface TopologyCanvasSources {
   pinned: () => ReadonlySet<string>
   selected: () => string | undefined
   view: () => View
+  trace?: () => TraceDrawing | undefined
   width: number
   height: number
   onPin: (id: string, at: Point) => void
@@ -63,6 +65,7 @@ export function useTopologyCanvas(s: TopologyCanvasSources) {
       pinned: s.pinned(),
       selected: s.selected(),
       view: s.view(),
+      trace: s.trace?.(),
       width: s.width,
       height: s.height,
       theme,
