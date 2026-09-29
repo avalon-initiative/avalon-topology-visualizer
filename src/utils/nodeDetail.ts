@@ -40,7 +40,7 @@ export function nodeDetailRows(facts: NodeFacts, merged: MergedGraph): DetailRow
     const rtts = link.observations.map((o) => [o.from, roundTripMs(o)] as const).filter((x): x is readonly [string, number] => x[1] !== undefined)
     const kinds = [...new Set(link.observations.map((o) => o.kind))].join(' + ')
     const rtt = rtts.length > 0 ? `, ${rtts.map(([from, ms]) => `${ms.toFixed(1)} ms seen by ${from}`).join('; ')}` : ''
-    rows.push({ label: `Link to ${other(link, facts.url)}`, value: `${kinds}${link.disagreement ? ' (the two ends disagree)' : ''}${rtt}`, mono: true })
+    rows.push({ id: `link:${link.a}|${link.b}`, label: `Link to ${other(link, facts.url)}`, value: `${kinds}${link.disagreement ? ' (the two ends disagree)' : ''}${rtt}`, mono: true })
   }
   return rows
 }
