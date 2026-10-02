@@ -38,6 +38,9 @@ export interface TopologyCanvasSources {
   pixelRatio?: () => number
   onPin: (id: string, at: Point) => void
   onUnpin: (id: string) => void
+  /** A node drag begins and ends (also when the gesture is cancelled), so the caller can hold the view still meanwhile. */
+  onDragStart?: () => void
+  onDragEnd?: () => void
   onSelect: (id: string | undefined) => void
   /** Screen-pixel deltas: the view should move by this much (content follows the pointer 1:1). */
   onPan: (dx: number, dy: number) => void
@@ -75,6 +78,7 @@ export function useTopologyCanvas(s: TopologyCanvasSources) {
   // Every pointer that is down, by id; a second one turns the press into a pinch.
   const down = new Map<number, Point>()
   let pinch: [number, number] | undefined
+  let draggingNode = false
   let pressed: { id: string | undefined; pointer: number; from: Point; last: Point; dragged: boolean } | undefined
 
   onMounted(() => {
@@ -125,6 +129,10 @@ export function useTopologyCanvas(s: TopologyCanvasSources) {
     pressed = undefined
     pinch = undefined
     panning.value = false
+    if (draggingNode) {
+      draggingNode = false
+      s.onDragEnd?.()
+    }
   }
 
   function pinchMove(e: PointerEvent, at: Point, ids: [number, number]) {
@@ -170,6 +178,10 @@ export function useTopologyCanvas(s: TopologyCanvasSources) {
       if (!pressed.dragged && Math.hypot(at.x - pressed.from.x, at.y - pressed.from.y) < DRAG_THRESHOLD_PX) return
       pressed.dragged = true
       if (pressed.id) {
+        if (!draggingNode) {
+          draggingNode = true
+          s.onDragStart?.()
+        }
         s.onPin(pressed.id, toWorld(s.view(), at))
         return
       }

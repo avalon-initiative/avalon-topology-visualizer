@@ -28,6 +28,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   pin: [id: string, at: Point]
   unpin: [id: string]
+  dragStart: []
+  dragEnd: []
   select: [id: string | undefined]
   pan: [dx: number, dy: number]
   zoom: [factor: number, at: Point]
@@ -53,6 +55,8 @@ const handlers = useTopologyCanvas({
   pixelRatio: () => pixelRatio.value,
   onPin: (id, at) => emit('pin', id, at),
   onUnpin: (id) => emit('unpin', id),
+  onDragStart: () => emit('dragStart'),
+  onDragEnd: () => emit('dragEnd'),
   onSelect: (id) => emit('select', id),
   onPan: (dx, dy) => emit('pan', dx, dy),
   onZoom: (factor, at) => emit('zoom', factor, at),

@@ -18,6 +18,7 @@ import styles from '../styles/Home.module.scss'
 import { useCrawler } from '../composables/useCrawler'
 import { useCrawlerForm } from '../composables/useCrawlerForm'
 import { useElementSize } from '../composables/useElementSize'
+import { useFrozenFit } from '../composables/useFrozenFit'
 import { useGraphStyle } from '../composables/useGraphStyle'
 import { useZoomView } from '../composables/useZoomView'
 import { useScaleBar } from '../composables/useScaleBar'
@@ -53,7 +54,8 @@ const { selected, facts, nodeStyles, links: linkStyles, detail } = useGraphStyle
 const shards = computed(() => shardKey(facts.value))
 const animated = useTweenedPositions(computed(() => layout.value?.positions), timelapse.replaying, () => size.value.width, () => size.value.height)
 // The one view everything uses: the auto-fit plus the user's zoom and pan. The scale bar reads it too, so it stays true.
-const zoomView = useZoomView({ fitted: () => animated.view.value, positions: () => animated.positions.value, size: () => size.value })
+const fit = useFrozenFit(() => animated.view.value)
+const zoomView = useZoomView({ fitted: fit.fitted, positions: () => animated.positions.value, size: () => size.value })
 const view = zoomView.view
 const bar = useScaleBar(layout, view)
 const extras = useTopologyExtras({
@@ -243,6 +245,8 @@ function probeSecond() {
           :height="size.height"
           @pin="pin"
           @unpin="unpin"
+          @drag-start="fit.freeze"
+          @drag-end="fit.release"
           @select="selected = $event"
           @pan="zoomView.panBy"
           @zoom="zoomView.zoomBy"

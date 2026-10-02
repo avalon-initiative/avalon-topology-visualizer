@@ -91,6 +91,25 @@ describe('TopologyCanvas', () => {
     expect(wrapper.emitted('pin')).toEqual([['http://b', { x: 150, y: 50 }]])
   })
 
+  it('announces a node drag once when it starts and once when it ends, and never for a click or a pan', async () => {
+    const wrapper = mount(TopologyCanvas, { props: props() })
+    const canvas = wrapper.find('canvas')
+    await fire(canvas, 'pointerdown', 300, 150)
+    await fire(canvas, 'pointermove', 350, 200)
+    await fire(canvas, 'pointermove', 360, 210)
+    expect(wrapper.emitted('dragStart')).toHaveLength(1)
+    expect(wrapper.emitted('dragEnd')).toBeUndefined()
+    await fire(canvas, 'pointerup', 360, 210)
+    expect(wrapper.emitted('dragEnd')).toHaveLength(1)
+    await fire(canvas, 'pointerdown', 300, 150)
+    await fire(canvas, 'pointerup', 300, 150)
+    await fire(canvas, 'pointerdown', 20, 20)
+    await fire(canvas, 'pointermove', 80, 80)
+    await fire(canvas, 'pointerup', 80, 80)
+    expect(wrapper.emitted('dragStart')).toHaveLength(1)
+    expect(wrapper.emitted('dragEnd')).toHaveLength(1)
+  })
+
   it('stops pinning once the pointer is released', async () => {
     const wrapper = mount(TopologyCanvas, { props: props() })
     const canvas = wrapper.find('canvas')
