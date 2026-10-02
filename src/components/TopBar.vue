@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { AvalonButton, AvalonTextField, AvalonToggleSwitch } from '@avalon-initiative/common-ui'
 import styles from '../styles/TopBar.module.scss'
+import type { NetworkOption } from '../api/networks'
 import type { SummaryStat } from '../utils/summaryStats'
 
 defineProps<{
   walking: boolean
+  networks: NetworkOption[]
+  selectedNetwork: string
   hasGraph: boolean
   toolsOpen: boolean
   /** Narrow screens only: whether the walk form is unfolded. Wide screens always show it. */
@@ -17,7 +20,7 @@ defineProps<{
 }>()
 const seedUrl = defineModel<string>('seedUrl', { required: true })
 const refreshSeconds = defineModel<string>('refreshSeconds', { required: true })
-defineEmits<{ walk: []; stop: []; save: []; file: [event: Event]; toggleTools: []; toggleControls: []; toggleMotion: [] }>()
+defineEmits<{ network: [networkId: string]; walk: []; stop: []; save: []; file: [event: Event]; toggleTools: []; toggleControls: []; toggleMotion: [] }>()
 </script>
 
 <template>
@@ -44,7 +47,19 @@ defineEmits<{ walk: []; stop: []; save: []; file: [event: Event]; toggleTools: [
       </div>
 
       <form id="walk-form" :class="[styles.form, !controlsOpen && styles.folded]" @submit.prevent="$emit('walk')">
-        <div :class="styles.seed"><AvalonTextField v-model="seedUrl" label="Seed node URL" placeholder="http://192.168.7.113:8080" /></div>
+        <div v-if="networks.length" :class="styles.networks" role="group" aria-label="Networks">
+          <span :class="styles.networksLabel">Network</span>
+          <AvalonButton
+            v-for="n in networks"
+            :key="n.networkId"
+            :label="n.networkId"
+            :variant="selectedNetwork === n.networkId ? 'primary' : 'secondary'"
+            :disabled="walking"
+            data-testid="network-button"
+            @click="$emit('network', n.networkId)"
+          />
+        </div>
+        <div :class="styles.seed"><AvalonTextField v-model="seedUrl" label="Or a seed node URL" placeholder="http://192.168.7.113:8080" /></div>
         <div :class="styles.refresh"><AvalonTextField v-model="refreshSeconds" label="Refresh (s, 0 = once)" /></div>
         <div :class="styles.actions">
           <AvalonButton v-if="!walking" label="Walk network" @click="$emit('walk')" />

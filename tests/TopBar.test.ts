@@ -6,6 +6,8 @@ const props = (extra: Record<string, unknown> = {}) => ({
   seedUrl: 'http://seed',
   refreshSeconds: '30',
   walking: false,
+  networks: [],
+  selectedNetwork: '',
   hasGraph: false,
   toolsOpen: true,
   controlsOpen: true,
@@ -72,5 +74,17 @@ describe('TopBar', () => {
     const w = mount(TopBar, { props: props({ reducedMotion: true }) })
     expect(w.get('[data-testid="motion-toggle"]').classes().join(' ')).toMatch(/compact/)
     expect(w.get('[data-testid="motion-toggle"] [data-testid="switch-state"]').text()).toBe('On')
+  })
+
+  it('offers the networks and emits the one chosen', async () => {
+    const w = mount(TopBar, { props: props({ networks: [{ networkId: 'dev-lan', environment: 'dev' }, { networkId: 'other', environment: 'dev' }], selectedNetwork: 'dev-lan' }) })
+    const buttons = w.findAll('[data-testid="network-button"]')
+    expect(buttons.map((b) => b.text())).toEqual(['dev-lan', 'other'])
+    await buttons[1].trigger('click')
+    expect(w.emitted('network')?.[0]).toEqual(['other'])
+  })
+
+  it('shows no network group when none are published', () => {
+    expect(mount(TopBar, { props: props() }).find('[data-testid="network-button"]').exists()).toBe(false)
   })
 })

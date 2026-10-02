@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { AvalonIssueList, AvalonWarningBanner } from '@avalon-initiative/common-ui'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import AppShell from '../components/AppShell.vue'
 import CanvasOverlay from '../components/CanvasOverlay.vue'
 import DetailDrawer from '../components/DetailDrawer.vue'
@@ -64,7 +64,8 @@ const extras = useTopologyExtras({
   viewerBook: viewerRtt.book,
   pulsesLive: computed(() => isLive.value && !timelapse.replaying.value),
 })
-const { seedUrl, refreshSeconds, walk, onFile, save } = useCrawlerForm(crawler, import.meta.env.VITE_AVALON_SEED_URL ?? '')
+const { seedUrl, refreshSeconds, networks, selectedNetwork, loadNetworks, walkNetwork, walk, onFile, save } = useCrawlerForm(crawler, import.meta.env.VITE_AVALON_SEED_URL ?? '')
+onMounted(loadNetworks)
 const tracer = useTrace({
   target: selected,
   defaultEntry: () => seedUrl.value,
@@ -115,12 +116,15 @@ function probeSecond() {
         v-model:seed-url="seedUrl"
         v-model:refresh-seconds="refreshSeconds"
         :walking="phase === 'walking'"
+        :networks="networks"
+        :selected-network="selectedNetwork"
         :has-graph="merged !== null"
         :tools-open="workspace.sidebar.open.value"
         :controls-open="workspace.controls.open.value"
         :status="status"
         :stats="stats"
         :reduced-motion="extras.motion.reduced.value"
+        @network="walkNetwork"
         @walk="walk"
         @stop="crawler.stop"
         @save="save"
@@ -241,7 +245,7 @@ function probeSecond() {
           @zoom="zoomView.zoomBy"
           @reset-view="zoomView.reset"
         />
-        <p v-else :class="styles.empty">Enter a seed node URL and choose Walk network, or open a saved snapshot.</p>
+        <p v-else :class="styles.empty">Choose a network to walk it, enter a seed node URL, or open a saved snapshot.</p>
 
         <CanvasOverlay
           :legend-open="workspace.legend.open.value"

@@ -6,6 +6,7 @@ import { edge, graph, visited } from './graphs'
 const { walkTopology, probeNode } = vi.hoisted(() => ({ walkTopology: vi.fn(), probeNode: vi.fn() }))
 vi.mock('@avalon-initiative/protocol-sdk', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@avalon-initiative/protocol-sdk')>()),
+  fetchTrustAnchors: vi.fn(async () => []),
   walkTopology,
   probeNode,
 }))

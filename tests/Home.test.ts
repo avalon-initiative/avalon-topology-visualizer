@@ -4,10 +4,11 @@ import { edge, graph, node } from './graphs'
 
 const noop = new Proxy({} as Record<string, unknown>, { get: () => () => undefined, set: () => true })
 
-const { walkTopology } = vi.hoisted(() => ({ walkTopology: vi.fn() }))
+const { walkTopology, fetchTrustAnchors } = vi.hoisted(() => ({ walkTopology: vi.fn(), fetchTrustAnchors: vi.fn() }))
 vi.mock('@avalon-initiative/protocol-sdk', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@avalon-initiative/protocol-sdk')>()),
   walkTopology,
+  fetchTrustAnchors,
 }))
 
 import Home from '../src/views/Home.vue'
@@ -25,6 +26,7 @@ async function walkFrom(seed: string) {
 describe('Home', () => {
   beforeEach(() => {
     walkTopology.mockReset()
+    fetchTrustAnchors.mockReset().mockResolvedValue([])
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(noop as never)
   })
 
@@ -178,5 +180,16 @@ describe('Home', () => {
       expect(wrapper.find('[data-testid="summary"]').text()).toMatch(/Nodes visited\s*2/)
       expect(wrapper.find('[data-testid="summary"]').text()).toMatch(/Links\s*1/)
     })
+  })
+
+  it('walks a published network from all of its nodes without a typed URL', async () => {
+    fetchTrustAnchors.mockResolvedValue([{ label: 'l', network_id: 'dev-lan', verify_key: 'aa', signing_key_id: 'k', environment: 'dev', seed_nodes: ['http://seed:8080', 'http://b:8080'] }])
+    walkTopology.mockResolvedValue(graph([node('http://seed:8080'), node('http://b:8080')], [edge('http://seed:8080', 'http://b:8080')]))
+    const wrapper = mount(Home)
+    await flushPromises()
+    await wrapper.find('[data-testid="network-button"]').trigger('click')
+    await flushPromises()
+    expect(walkTopology.mock.calls[0][0]).toEqual(['http://seed:8080', 'http://b:8080'])
+    expect(wrapper.find('[data-testid="summary"]').exists()).toBe(true)
   })
 })
