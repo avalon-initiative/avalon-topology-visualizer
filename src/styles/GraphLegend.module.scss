@@ -90,6 +90,23 @@
   font-weight: 700;
 }
 
+.shardButton {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--av-color-primary-hover);
+    outline-offset: 2px;
+  }
+}
+
+.shardOff {
+  opacity: 0.35;
+}
+
 .shard {
   fill: none;
   stroke-width: 2;
@@ -112,4 +129,26 @@
 }
 .shard-5 {
   stroke: var(--av-color-primary-text);
+}
+
+// One bordered box per entry so a mark and its words read as a unit, with a gap before the next.
+.legend {
+  [class*='AvalonLegend-module__list'] {
+    gap: var(--av-space-1);
+  }
+
+  [class*='AvalonLegend-module__item'] {
+    padding: var(--av-space-1) var(--av-space-2);
+    border: 1px solid var(--av-color-border);
+    border-radius: var(--av-radius-sm);
+    background: var(--av-color-surface);
+  }
+
+  [class*='AvalonLegend-module__group'] {
+    margin-bottom: var(--av-space-3);
+  }
+
+  [class*='AvalonLegend-module__title'] {
+    margin-bottom: var(--av-space-2);
+  }
 }
