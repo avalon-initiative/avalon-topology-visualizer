@@ -13,12 +13,19 @@ export interface ShardKeyItem {
   id: string
   /** Index into the theme's shard palette. */
   color: number
+  /** Every read node is in it (with at least two read nodes), so its outline would only wrap the whole graph. */
+  universal: boolean
 }
 
 /** Every shard seen on any node, in id order so a shard keeps its colour from one refresh to the next. */
 export function shardKey(facts: Record<string, NodeFacts>): ShardKeyItem[] {
+  const read = Object.values(facts).filter((f) => f.status === 'visited')
   const ids = [...new Set(Object.values(facts).flatMap(memberShards))].sort()
-  return ids.map((id, i) => ({ id, color: i % SHARD_PALETTE_SIZE }))
+  return ids.map((id, i) => ({
+    id,
+    color: i % SHARD_PALETTE_SIZE,
+    universal: read.length >= 2 && read.every((f) => memberShards(f).includes(id)),
+  }))
 }
 
 export interface ShardRegion {
