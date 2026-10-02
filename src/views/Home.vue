@@ -18,6 +18,7 @@ import styles from '../styles/Home.module.scss'
 import { useCrawler } from '../composables/useCrawler'
 import { useCrawlerForm } from '../composables/useCrawlerForm'
 import { useElementSize } from '../composables/useElementSize'
+import { useShardOutlines } from '../composables/useShardOutlines'
 import { useGraphStyle } from '../composables/useGraphStyle'
 import { useZoomView } from '../composables/useZoomView'
 import { useScaleBar } from '../composables/useScaleBar'
@@ -50,7 +51,7 @@ const extraLayoutLinks = computed(() => [...viewerRtt.links.value, ...probe.link
 const extraDrawLinks = computed(() => [...viewerRtt.drawLinks.value, ...probe.drawLinks.value])
 const { layout, pinned, pin, unpin } = useLayout(merged, extraLayoutLinks, size)
 const { selected, facts, nodeStyles, links: linkStyles, detail } = useGraphStyle(merged, extraDrawLinks)
-const shards = computed(() => shardKey(facts.value))
+const shardOutlines = useShardOutlines(computed(() => shardKey(facts.value)))
 const animated = useTweenedPositions(computed(() => layout.value?.positions), timelapse.replaying, () => size.value.width, () => size.value.height)
 // The one view everything uses: the auto-fit plus the user's zoom and pan. The scale bar reads it too, so it stays true.
 const zoomView = useZoomView({ fitted: () => animated.view.value, positions: () => animated.positions.value, size: () => size.value })
@@ -233,7 +234,7 @@ function probeSecond() {
           :links="[...merged.links, ...viewerRtt.drawLinks.value]"
           :link-styles="extras.drawing.value.linkStyles"
           :node-styles="extras.drawing.value.nodeStyles"
-          :shard-key="shards"
+          :shard-key="shardOutlines.outlined.value"
           :pulse="extras.pulse.value"
           :pinned="pinned"
           :selected="selected"
@@ -267,7 +268,7 @@ function probeSecond() {
               :message="`Stopped at the ${merged.stoppedAtLimit.maxNodes ? 'node' : 'depth'} limit, so the graph may be incomplete.`"
             />
           </template>
-          <template v-if="layout" #legend><GraphLegend :shards="shards" /></template>
+          <template v-if="layout" #legend><GraphLegend :shards="shardOutlines.items.value" @toggle-shard="shardOutlines.toggle" /></template>
           <template #scale><ScaleBar :px="bar.px" :ms="bar.ms" /></template>
         </CanvasOverlay>
       </div>

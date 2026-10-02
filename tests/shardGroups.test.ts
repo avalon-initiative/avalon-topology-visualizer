@@ -24,6 +24,12 @@ describe('shardKey', () => {
     expect(shardKey(facts).map((k) => k.id)).toEqual(['own', 's1'])
   })
 
+  it('marks a shard universal only when every read node is in it, with at least two read nodes', () => {
+    const both = shardKey(factsOf([visited('http://a', { shards: [shard('core')] }), visited('http://b', { shards: [shard('core'), shard('mine')] })]))
+    expect(both.map((k) => [k.id, k.universal])).toEqual([['core', true], ['mine', false]])
+    expect(shardKey(factsOf([visited('http://a', { shards: [shard('core')] })]))[0].universal).toBe(false)
+  })
+
   it('is empty when no node reports a shard', () => {
     expect(shardKey(factsOf([visited('http://a')]))).toEqual([])
   })
@@ -54,7 +60,7 @@ describe('convexHull', () => {
 
 describe('shardRegions', () => {
   const pos: Record<string, { x: number; y: number }> = { 'http://a': { x: 0, y: 0 }, 'http://b': { x: 40, y: 0 }, 'http://c': { x: 20, y: 30 } }
-  const key = [{ id: 'x', color: 0 }, { id: 'y', color: 1 }, { id: 'none', color: 2 }]
+  const key = [{ id: 'x', color: 0, universal: false }, { id: 'y', color: 1, universal: false }, { id: 'none', color: 2, universal: false }]
 
   it('makes one region per shard around exactly its members; a node in two shards is in both', () => {
     const regions = shardRegions(key, { 'http://a': ['x'], 'http://b': ['x', 'y'], 'http://c': ['y'] }, (id) => pos[id])
