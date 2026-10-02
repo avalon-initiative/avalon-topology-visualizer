@@ -282,4 +282,37 @@ describe('useTrace', () => {
     c.step(2)
     expect(api.playback.value.status).toBe('finished')
   })
+
+  it('plays a route through chosen stops and back to the entry as one path', async () => {
+    const fn = vi.fn(async (from: string, to: string) => ({ ...reached(), hops: [{ ...reached().hops[0], base_url: from }, { ...reached().hops[1], base_url: to }].map((h, i) => ({ ...h, index: i, to_next_ms: i === 0 ? 4 : undefined })), target: to }))
+    const { api } = make(fn)
+    api.entryInput.value = 'http://a'
+    api.via.value = ['http://b']
+    api.returnTrip.value = true
+    await api.trace()
+    expect(fn.mock.calls.map((c) => [c[0], c[1]])).toEqual([
+      ['http://a', 'http://b'],
+      ['http://b', 'http://c'],
+      ['http://c', 'http://a'],
+    ])
+    expect(api.drawing.value?.path).toEqual(['viewer:this-browser', 'http://a', 'http://b', 'http://c', 'http://a'])
+  })
+
+  it('adds the selected node as a stop and removes stops by position', () => {
+    const { api, target } = make(vi.fn())
+    target.value = 'http://b'
+    api.addVia()
+    target.value = 'http://d'
+    api.addVia()
+    expect(api.via.value).toEqual(['http://b', 'http://d'])
+    api.removeVia(0)
+    expect(api.via.value).toEqual(['http://d'])
+  })
+
+  it('still sends a single plain trace when there are no stops and no return', async () => {
+    const fn = vi.fn(async () => reached())
+    const { api } = make(fn)
+    await api.trace()
+    expect(fn).toHaveBeenCalledTimes(1)
+  })
 })

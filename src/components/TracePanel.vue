@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AvalonButton, AvalonTextField, AvalonWarningBanner } from '@avalon-initiative/common-ui'
+import { AvalonButton, AvalonTextField, AvalonToggleSwitch, AvalonWarningBanner } from '@avalon-initiative/common-ui'
 import styles from '../styles/TracePanel.module.scss'
 import { nodeLabel } from '../utils/drawGraph'
 import { formatMs } from '../utils/formatRtt'
@@ -11,6 +11,9 @@ defineProps<{
   entry: string
   entryPlaceholder: string
   target: string | undefined
+  /** Nodes the route passes through, in order, between the entry and the target. */
+  via: string[]
+  returnTrip: boolean
   /** The node selected on the map, offered as the entry or the target. */
   selected?: string
   /** Index of the hop the packet is at, for the highlighted row; null when none. */
@@ -25,6 +28,9 @@ defineEmits<{
   pickEntry: []
   pickTarget: []
   swap: []
+  addVia: []
+  removeVia: [index: number]
+  'update:returnTrip': [value: boolean]
   trace: []
   clear: []
   replay: []
@@ -47,9 +53,17 @@ defineEmits<{
       <dt>To</dt>
       <dd data-testid="trace-target">{{ target ?? 'none, click a node on the map to pick one' }}</dd>
     </dl>
+    <ol v-if="via.length" :class="styles.via" aria-label="Stops between the entry and the target">
+      <li v-for="(u, i) in via" :key="`${i}-${u}`" data-testid="trace-via">
+        <span :class="styles.url" :title="u">{{ i + 1 }}. {{ nodeLabel(u) }}</span>
+        <AvalonButton :label="`Remove stop ${i + 1}`" variant="secondary" @click="$emit('removeVia', i)" />
+      </li>
+    </ol>
+    <AvalonToggleSwitch :model-value="returnTrip" label="Return to the entry node afterwards" description="Adds a leg from the target back to the entry." @update:model-value="$emit('update:returnTrip', $event)" />
     <div :class="styles.actions">
       <AvalonButton label="Use selected as entry" variant="secondary" :disabled="!selected" @click="$emit('pickEntry')" />
       <AvalonButton label="Use selected as target" variant="secondary" :disabled="!selected" @click="$emit('pickTarget')" />
+      <AvalonButton label="Add selected as a stop" variant="secondary" :disabled="!selected" @click="$emit('addVia')" />
       <AvalonButton label="Swap" variant="secondary" :disabled="!target" @click="$emit('swap')" />
     </div>
     <div :class="styles.actions">
