@@ -54,7 +54,9 @@ export function useTrace(options: TraceOptions) {
   watch(options.target, () => (targetPick.value = undefined))
   const entry = computed(() => entryInput.value.trim() || options.defaultEntry())
   const target = computed(() => targetPick.value ?? options.target.value)
-  const timeline = computed(() => buildTimeline(result.value ?? { hops: [], reached: false }, VIEWER_ID))
+  // A route through stops is several traces joined, so it plays once along its path with no response replay.
+  const oneWay = ref(false)
+  const timeline = computed(() => buildTimeline(result.value ?? { hops: [], reached: false }, VIEWER_ID, { response: !oneWay.value }))
   const summary = computed(() => (result.value ? summarizeTrace(result.value) : null))
   const frame = computed(() => frameAt(timeline.value, playback.value.elapsedMs))
   const hop = computed(() => activeHop(timeline.value, frame.value))
@@ -131,6 +133,7 @@ export function useTrace(options: TraceOptions) {
           ? await runTrace({ entry: entry.value, target: target.value ?? '', traceFn: options.traceFn })
           : await runItinerary({ stops: [entry.value, ...via.value, target.value ?? '', ...(returnTrip.value ? [entry.value] : [])], traceFn: options.traceFn })
       if (mine !== epoch) return
+      oneWay.value = via.value.length > 0 || returnTrip.value
       result.value = res
       replay()
     } catch (e) {

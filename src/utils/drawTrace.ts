@@ -74,6 +74,7 @@ function drawTrail(ctx: CanvasRenderingContext2D, frame: Frame, trail: Frame[], 
   ctx.lineWidth = TRAIL_WIDTH
   ctx.lineCap = 'round'
   trail.forEach((f, i) => {
+    ctx.setLineDash(f.direction === 'back' ? [4, 6] : [])
     const next = packetPoint(f, positions)
     if (prev && next && (prev.x !== next.x || prev.y !== next.y)) {
       const a = toScreen(view, prev)
@@ -180,11 +181,19 @@ export function drawTrace(ctx: CanvasRenderingContext2D, trace: TraceDrawing, al
     const s = toScreen(view, at)
     ctx.beginPath()
     ctx.arc(s.x, s.y, PACKET_RADIUS, 0, Math.PI * 2)
-    ctx.fillStyle = theme.warning
-    ctx.fill()
-    ctx.strokeStyle = theme.label
-    ctx.lineWidth = 1.5
-    ctx.stroke()
+    // The response coming back is drawn as an outline, so it reads as different from the request going out.
+    const response = trace.frame?.direction === 'back' && trace.frame.kind === 'transit'
+    if (response) {
+      ctx.strokeStyle = theme.warning
+      ctx.lineWidth = 3
+      ctx.stroke()
+    } else {
+      ctx.fillStyle = theme.warning
+      ctx.fill()
+      ctx.strokeStyle = theme.label
+      ctx.lineWidth = 1.5
+      ctx.stroke()
+    }
   }
   ctx.restore()
 }

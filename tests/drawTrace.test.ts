@@ -40,6 +40,14 @@ describe('drawTrace', () => {
     expect(r.of('lineTo').map((c) => c.args)).toEqual([[100, 0], [100, 100]])
   })
 
+  it('draws the request packet filled and the response packet as an outline only', () => {
+    const out = recorder()
+    drawTrace(out.ctx, { path: ['a', 'b'], frame: frame() }, positions, view, DEFAULT_THEME)
+    const back = recorder()
+    drawTrace(back.ctx, { path: ['a', 'b'], frame: frame({ direction: 'back', from: 'b', to: 'a' }) }, positions, view, DEFAULT_THEME)
+    expect(out.of('fill').length).toBeGreaterThan(back.of('fill').length)
+  })
+
   it('draws the packet in the warning colour at its position, and nothing without a frame', () => {
     const r = recorder()
     drawTrace(r.ctx, { path: ['a', 'b'], frame: frame() }, positions, view, DEFAULT_THEME)

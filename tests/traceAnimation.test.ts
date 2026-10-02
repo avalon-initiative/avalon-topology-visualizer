@@ -331,3 +331,17 @@ describe('trailFrames', () => {
     expect(trailFrames(buildTimeline(trace([]), V), 5)).toEqual([])
   })
 })
+
+describe('buildTimeline without a response', () => {
+  const result = { hops: path(['http://a', 1, 4], ['http://b', 1, 4], ['http://a', 1]), reached: true }
+
+  it('plays the path once out and never retraces it, even though the target was reached', () => {
+    const full = buildTimeline(result, 'v')
+    const once = buildTimeline(result, 'v', { response: false })
+    expect(full.segments.some((s) => s.direction === 'back')).toBe(true)
+    expect(once.segments.every((s) => s.direction === 'out')).toBe(true)
+    expect(once.roundTrip).toBe(false)
+    expect(once.totalMs).toBeLessThan(full.totalMs)
+    expect(once.reportedMs).toBeLessThan(full.reportedMs)
+  })
+})

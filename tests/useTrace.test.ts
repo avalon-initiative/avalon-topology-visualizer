@@ -296,6 +296,13 @@ describe('useTrace', () => {
       ['http://c', 'http://a'],
     ])
     expect(api.drawing.value?.path).toEqual(['viewer:this-browser', 'http://a', 'http://b', 'http://c', 'http://a'])
+    expect(api.timeline.value.segments.some((s) => s.direction === 'back')).toBe(false)
+  })
+
+  it('still replays the response back along a plain trace', async () => {
+    const { api } = make(vi.fn(async () => reached()))
+    await api.trace()
+    expect(api.timeline.value.segments.some((s) => s.direction === 'back')).toBe(true)
   })
 
   it('adds the selected node as a stop and removes stops by position', () => {
