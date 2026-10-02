@@ -7,11 +7,11 @@ import { summarizeTrace } from '../src/utils/traceSummary'
 import { reached, stopped } from './traces'
 
 const panel = (over: Record<string, unknown> = {}) =>
-  mount(TracePanel, { props: { entry: '', entryPlaceholder: 'http://seed', target: 'http://c', loading: false, error: null, summary: null, playback: idlePlayback() as Playback, ...over } })
+  mount(TracePanel, { props: { entry: '', entryPlaceholder: 'http://seed', target: 'http://c', via: [], returnTrip: false, loading: false, error: null, summary: null, playback: idlePlayback() as Playback, ...over } })
 
 const buttons = (w: ReturnType<typeof panel>) => w.findAll('button').map((b) => b.text())
 const button = (w: ReturnType<typeof panel>, label: string) => w.findAll('button').find((b) => b.text() === label)!
-const DRIVE = ['Use selected as entry', 'Use selected as target', 'Swap']
+const DRIVE = ['Use selected as entry', 'Use selected as target', 'Add selected as a stop', 'Swap']
 
 describe('TracePanel', () => {
   it('always says the hop data is self-reported', () => {
@@ -111,5 +111,29 @@ describe('TracePanel', () => {
     expect(w.emitted('trace')).toHaveLength(1)
     await w.get('input').setValue('http://entry')
     expect(w.emitted('update:entry')?.[0]).toEqual(['http://entry'])
+  })
+
+  it('lists the stops in order, each removable, and emits which one', async () => {
+    const w = panel({ via: ['http://b:8080', 'http://d:8080'] })
+    const rows = w.findAll('[data-testid="trace-via"]')
+    expect(rows.map((r) => r.text())).toEqual([expect.stringContaining('1. b:8080'), expect.stringContaining('2. d:8080')])
+    await button(w, 'Remove stop 2').trigger('click')
+    expect(w.emitted('removeVia')).toEqual([[1]])
+  })
+
+  it('adds the selected node as a stop, only when one is selected', async () => {
+    const w = panel({ selected: 'http://s' })
+    await button(w, 'Add selected as a stop').trigger('click')
+    expect(w.emitted('addVia')).toHaveLength(1)
+    expect(button(panel(), 'Add selected as a stop').attributes('disabled')).toBeDefined()
+  })
+
+  it('has a switch for returning to the entry that reports its state and emits changes', async () => {
+    const w = panel({ returnTrip: true })
+    const box = w.get('input[type="checkbox"]')
+    expect((box.element as HTMLInputElement).checked).toBe(true)
+    expect(w.text()).toContain('Return to the entry node afterwards')
+    await box.setValue(false)
+    expect(w.emitted('update:returnTrip')).toEqual([[false]])
   })
 })

@@ -1,7 +1,7 @@
 import { computed, onScopeDispose, ref, shallowRef, watch } from 'vue'
 import type { Ref } from 'vue'
 import type { TraceResult } from '@avalon-initiative/protocol-sdk'
-import { runTrace, TraceInputError } from '../api/tracer'
+import { runItinerary, runTrace, TraceInputError } from '../api/tracer'
 import type { TraceRequest } from '../api/tracer'
 import type { TraceDrawing } from '../utils/drawTrace'
 import { VIEWER_ID } from '../utils/rttStats'
@@ -46,6 +46,9 @@ export function useTrace(options: TraceOptions) {
   let lastNow: number | undefined
   let epoch = 0
 
+  // Nodes to pass through, in order, between the entry and the target; and whether to come back to the entry afterwards.
+  const via = ref<string[]>([])
+  const returnTrip = ref(false)
   const targetPick = ref<string | undefined>()
   // Selecting another node makes it the target again; an explicit pick or swap holds until then.
   watch(options.target, () => (targetPick.value = undefined))
@@ -123,7 +126,10 @@ export function useTrace(options: TraceOptions) {
     playback.value = idlePlayback(playback.value.speed)
     loading.value = true
     try {
-      const res = await runTrace({ entry: entry.value, target: target.value ?? '', traceFn: options.traceFn })
+      const res =
+        via.value.length === 0 && !returnTrip.value
+          ? await runTrace({ entry: entry.value, target: target.value ?? '', traceFn: options.traceFn })
+          : await runItinerary({ stops: [entry.value, ...via.value, target.value ?? '', ...(returnTrip.value ? [entry.value] : [])], traceFn: options.traceFn })
       if (mine !== epoch) return
       result.value = res
       replay()
@@ -141,6 +147,14 @@ export function useTrace(options: TraceOptions) {
 
   function pickTarget() {
     targetPick.value = options.target.value
+  }
+
+  function addVia() {
+    if (options.target.value) via.value = [...via.value, options.target.value]
+  }
+
+  function removeVia(index: number) {
+    via.value = via.value.filter((_, i) => i !== index)
   }
 
   function swap() {
@@ -162,5 +176,5 @@ export function useTrace(options: TraceOptions) {
 
   onScopeDispose(halt)
 
-  return { entryInput, entry, target, hop, pickEntry, pickTarget, swap, result, error, loading, playback, timeline, summary, frame, drawing, trace, replay, togglePause, changeSpeed, clear }
+  return { entryInput, entry, target, via, returnTrip, addVia, removeVia, hop, pickEntry, pickTarget, swap, result, error, loading, playback, timeline, summary, frame, drawing, trace, replay, togglePause, changeSpeed, clear }
 }
