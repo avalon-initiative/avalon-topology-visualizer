@@ -11,6 +11,8 @@ import { toScreen } from './viewport'
 import type { View } from './viewport'
 import type { LinkStyle, NodeStyle } from './styleGraph'
 import type { AlertKind } from './alerts'
+import { shardRegions } from './shardGroups'
+import type { ShardKeyItem, ShardRegion } from './shardGroups'
 
 export interface DrawTheme {
   link: string
@@ -27,6 +29,8 @@ export interface DrawTheme {
   badgeText: string
   /** Backing behind label text so it stays readable over links. */
   halo: string
+  /** One tint per shard colour index. */
+  shardPalette: string[]
 }
 
 export const DEFAULT_THEME: DrawTheme = {
@@ -42,6 +46,7 @@ export const DEFAULT_THEME: DrawTheme = {
   muted: '#94a3b8',
   badgeText: '#0b1220',
   halo: '#0b1220',
+  shardPalette: ['#2ecc71', '#4fc3f7', '#c678dd', '#f5a623', '#f26d78', '#e5c07b'],
 }
 
 export interface DrawInput {
@@ -50,6 +55,8 @@ export interface DrawInput {
   links: { a: string; b: string }[]
   linkStyles?: LinkStyle[]
   nodeStyles?: Record<string, NodeStyle>
+  /** Shards present in the graph; each gets a tinted region behind the nodes that serve it. */
+  shardKey?: ShardKeyItem[]
   pinned: ReadonlySet<string>
   selected?: string
   /** Node under the pointer: always gets a full label. */
@@ -75,6 +82,9 @@ const DIMMED_ALPHA = 0.4
 const LINK_LABEL_OFFSET_PX = 4
 const FADED_ALPHA = 0.15
 const BADGE_RADIUS = 6
+const SHARD_PAD_PX = 16
+const SHARD_OUTLINE_ALPHA = 0.9
+const SHARD_LABEL_GAP = 4
 const LABEL_CLEARANCE = NODE_DRAW_RADIUS + 5
 const HALO_WIDTH = 3
 const HALO_ALPHA = 0.85
@@ -120,6 +130,47 @@ function drawLink(ctx: CanvasRenderingContext2D, style: LinkStyle, a: Point, b: 
     ctx.closePath()
     ctx.fill()
   }
+  ctx.restore()
+}
+
+/** The outline of the padded hull: each vertex gets a round corner, joined by the offset edges. Hull points run counter-clockwise in numeric terms. */
+function drawShardRegion(ctx: CanvasRenderingContext2D, region: ShardRegion, theme: DrawTheme) {
+  const { hull } = region
+  ctx.save()
+  ctx.globalAlpha = SHARD_OUTLINE_ALPHA
+  ctx.strokeStyle = theme.shardPalette[region.color % theme.shardPalette.length]
+  ctx.lineWidth = 2
+  ctx.setLineDash([8, 4])
+  ctx.beginPath()
+  if (hull.length === 1) ctx.arc(hull[0].x, hull[0].y, SHARD_PAD_PX, 0, Math.PI * 2)
+  else {
+    const normal = (from: Point, to: Point) => Math.atan2(-(to.x - from.x), to.y - from.y)
+    hull.forEach((p, i) => {
+      const [prev, next] = [hull[(i + hull.length - 1) % hull.length], hull[(i + 1) % hull.length]]
+      const start = normal(prev, p)
+      const sweep = (((normal(p, next) - start) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)
+      ctx.arc(p.x, p.y, SHARD_PAD_PX, start, start + sweep, false)
+    })
+    ctx.closePath()
+  }
+  ctx.stroke()
+  ctx.restore()
+}
+
+function drawShardLabel(ctx: CanvasRenderingContext2D, region: ShardRegion, theme: DrawTheme) {
+  const top = region.hull.reduce((best, p) => (p.y < best.y ? p : best))
+  ctx.save()
+  ctx.font = '10px sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'bottom'
+  const text = `shard ${region.id.length > 12 ? `${region.id.slice(0, 11)}…` : region.id}`
+  const y = top.y - SHARD_PAD_PX - SHARD_LABEL_GAP
+  ctx.lineJoin = 'round'
+  ctx.lineWidth = HALO_WIDTH * 2
+  ctx.strokeStyle = theme.halo
+  ctx.strokeText(text, top.x, y)
+  ctx.fillStyle = theme.shardPalette[region.color % theme.shardPalette.length]
+  ctx.fillText(text, top.x, y)
   ctx.restore()
 }
 
@@ -262,6 +313,10 @@ export function drawGraph(ctx: CanvasRenderingContext2D, input: DrawInput): void
   const links: LinkStyle[] = input.linkStyles ?? input.links.map((l) => ({ kind: 'active', a: l.a, b: l.b, width: 1.5, alpha: 1 }))
   ctx.clearRect(0, 0, width, height)
 
+  const members = Object.fromEntries(Object.entries(input.nodeStyles ?? {}).flatMap(([id, st]) => (st.shards?.length && !st.faded ? [[id, st.shards]] : [])))
+  const regions = shardRegions(input.shardKey ?? [], members, (id) => (positions[id] ? toScreen(view, positions[id]) : undefined))
+  for (const region of regions) drawShardRegion(ctx, region, theme)
+
   for (const link of links) {
     const a = positions[link.a]
     const b = positions[link.b]
@@ -288,6 +343,7 @@ export function drawGraph(ctx: CanvasRenderingContext2D, input: DrawInput): void
     if (id === selected) ring(ctx, at, NODE_DRAW_RADIUS + SELECT_RING_OFFSET, theme.label, 1.5, [])
   }
 
+  for (const region of regions) drawShardLabel(ctx, region, theme)
   drawLabels(ctx, input, theme)
 
   ctx.font = '11px sans-serif'

@@ -1,6 +1,7 @@
 import type { AlertKind } from './alerts'
 import type { MergedLink } from './mergeGraph'
 import type { NodeFacts, VersionState } from './nodeFacts'
+import { memberShards } from './shardGroups'
 import { shapeForRoles } from './shapes'
 import type { NodeShape } from './shapes'
 
@@ -17,6 +18,8 @@ export interface NodeStyle {
   faded?: boolean
   /** Open alerts on this node, drawn as badges. */
   alerts?: AlertKind[]
+  /** Shards this node authors or mirrors; nodes sharing one are drawn inside a common tinted region. */
+  shards?: string[]
 }
 
 export type LinkKind = 'active' | 'mirror' | 'known'
@@ -45,6 +48,7 @@ export function nodeStyle(f: NodeFacts): NodeStyle {
     dimmed: f.stale,
     version: f.versionState,
     lag: f.lagRatio && f.lagRatio > 0 ? Math.max(MIN_VISIBLE_LAG, Math.min(1, f.lagRatio)) : 0,
+    ...(memberShards(f).length > 0 ? { shards: memberShards(f) } : {}),
   }
 }
 

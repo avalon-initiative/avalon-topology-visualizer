@@ -6,6 +6,7 @@ import { useTopologyCanvas } from '../composables/useTopologyCanvas'
 import type { TraceDrawing } from '../utils/drawTrace'
 import type { Point } from '../utils/layout'
 import type { PulseDrawing } from '../utils/pulses'
+import type { ShardKeyItem } from '../utils/shardGroups'
 import type { LinkStyle, NodeStyle } from '../utils/styleGraph'
 import type { View } from '../utils/viewport'
 
@@ -14,6 +15,7 @@ const props = defineProps<{
   links: { a: string; b: string }[]
   linkStyles?: LinkStyle[]
   nodeStyles?: Record<string, NodeStyle>
+  shardKey?: ShardKeyItem[]
   pinned: ReadonlySet<string>
   selected?: string
   view: View
@@ -40,6 +42,7 @@ const handlers = useTopologyCanvas({
   links: () => props.links,
   linkStyles: () => props.linkStyles,
   nodeStyles: () => props.nodeStyles,
+  shardKey: () => props.shardKey,
   pinned: () => props.pinned,
   selected: () => props.selected,
   view: () => props.view,

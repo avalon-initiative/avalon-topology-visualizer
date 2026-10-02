@@ -5,6 +5,8 @@ import type { DrawTheme } from '../utils/drawGraph'
 import type { TraceDrawing } from '../utils/drawTrace'
 import type { Point } from '../utils/layout'
 import type { PulseDrawing } from '../utils/pulses'
+import type { ShardKeyItem } from '../utils/shardGroups'
+import { readShardPalette } from '../utils/shardPalette'
 import type { LinkStyle, NodeStyle } from '../utils/styleGraph'
 import { nodeAt, toWorld } from '../utils/viewport'
 import type { View } from '../utils/viewport'
@@ -24,6 +26,7 @@ export interface TopologyCanvasSources {
   links: () => { a: string; b: string }[]
   linkStyles: () => LinkStyle[] | undefined
   nodeStyles: () => Record<string, NodeStyle> | undefined
+  shardKey?: () => ShardKeyItem[] | undefined
   pinned: () => ReadonlySet<string>
   selected: () => string | undefined
   view: () => View
@@ -59,6 +62,7 @@ function readTheme(): DrawTheme {
     muted: pick('--av-color-text-muted', DEFAULT_THEME.muted),
     badgeText: pick('--av-color-bg', DEFAULT_THEME.badgeText),
     halo: pick('--av-color-bg', DEFAULT_THEME.halo),
+    shardPalette: readShardPalette(pick),
   }
 }
 
@@ -93,6 +97,7 @@ export function useTopologyCanvas(s: TopologyCanvasSources) {
       links: s.links(),
       linkStyles: s.linkStyles(),
       nodeStyles: s.nodeStyles(),
+      shardKey: s.shardKey?.(),
       pinned: s.pinned(),
       selected: s.selected(),
       hovered: hovered.value,

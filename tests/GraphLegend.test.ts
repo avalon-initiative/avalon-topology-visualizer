@@ -48,3 +48,16 @@ describe('GraphLegend alerts and changes', () => {
     expect(item('Changed since').find('circle').exists()).toBe(true)
   })
 })
+
+describe('GraphLegend shards', () => {
+  it('shows no shard group when the graph has no shards', () => {
+    expect(mount(GraphLegend).text()).not.toContain('Shards')
+  })
+
+  it('names each shard with a mark of its colour', () => {
+    const w = mount(GraphLegend, { props: { shards: [{ id: 'abc', color: 0 }, { id: 'def', color: 1 }] } })
+    expect(w.text()).toContain('Shard abc')
+    expect(w.text()).toContain('Shard def')
+    expect(w.findAll('rect')).toHaveLength(2)
+  })
+})

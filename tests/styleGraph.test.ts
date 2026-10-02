@@ -27,6 +27,15 @@ describe('nodeStyle', () => {
     expect(nodeStyle(facts['http://x']).hollow).toBe(true)
   })
 
+  it('names the shards a node serves, and has none for a node with no shards', () => {
+    expect(style(visited('http://a', { shards: [{ shard_id: 's1', tree_size: 1 }, { shard_id: 's2', tree_size: 1 }] })).shards).toEqual(['s1', 's2'])
+    expect(style(visited('http://a')).shards).toBeUndefined()
+  })
+
+  it('includes shards the node mirrors', () => {
+    expect(style(visited('http://a', { shards: [{ shard_id: 'own', tree_size: 1 }] }), [visited('http://s')], [mirror('http://a', 'http://s', 0)]).shards).toEqual(['own', 's1'])
+  })
+
   it('fades a node that reports itself stale', () => {
     expect(style(visited('http://a', { stale: true })).dimmed).toBe(true)
   })

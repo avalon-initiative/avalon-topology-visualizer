@@ -398,3 +398,32 @@ describe('drawGraph alerts, filters and pulses', () => {
     expect(dots(r)).toHaveLength(0)
   })
 })
+
+describe('drawGraph shard regions', () => {
+  const plain: NodeStyle = { shape: 'circle', hollow: false, dimmed: false, version: 'unknown', lag: 0 }
+  const input = {
+    ...base,
+    nodeStyles: { 'http://a:1': { ...plain, shards: ['s1'] }, 'http://b:2': { ...plain, shards: ['s1'] } },
+    shardKey: [{ id: 's1', color: 1 }],
+    theme: { ...DEFAULT_THEME, shardPalette: ['#000001', '#000002'] },
+  }
+
+  it('outlines a region in the shard colour, dashed and unfilled, before any link or node, and labels it with the shard id', () => {
+    const r = recorder()
+    drawGraph(r.ctx, input)
+    expect(r.calls.find((c) => c.fn === 'set:strokeStyle')?.args[0]).toBe('#000002')
+    expect(r.calls.find((c) => c.fn === 'setLineDash')?.args[0]).toEqual([8, 4])
+    expect(r.of('arc').slice(0, 2).map((c) => c.args[2])).toEqual([16, 16])
+    expect(r.of('fill')).toHaveLength(2) // the two nodes only
+    expect(r.of('fillText').map((c) => c.args[0])).toContain('shard s1')
+  })
+
+  it('draws no region when no node has a shard, or the member is filtered out', () => {
+    const none = recorder()
+    drawGraph(none.ctx, { ...input, shardKey: [] })
+    expect(none.of('fillText').map((c) => c.args[0] as string).some((t) => t.startsWith('shard'))).toBe(false)
+    const faded = recorder()
+    drawGraph(faded.ctx, { ...input, nodeStyles: { 'http://a:1': { ...plain, shards: ['s1'], faded: true }, 'http://b:2': { ...plain, shards: ['s1'], faded: true } } })
+    expect(faded.of('fillText').map((c) => c.args[0] as string).some((t) => t.startsWith('shard'))).toBe(false)
+  })
+})
