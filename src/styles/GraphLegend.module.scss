@@ -89,3 +89,27 @@
   font-size: 9px;
   font-weight: 700;
 }
+
+.shard {
+  fill: none;
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+}
+.shard-0 {
+  stroke: var(--av-color-success);
+}
+.shard-1 {
+  stroke: var(--av-color-accent-tertiary);
+}
+.shard-2 {
+  stroke: var(--av-color-accent-secondary);
+}
+.shard-3 {
+  stroke: var(--av-color-warning);
+}
+.shard-4 {
+  stroke: var(--av-color-danger);
+}
+.shard-5 {
+  stroke: var(--av-color-primary-text);
+}

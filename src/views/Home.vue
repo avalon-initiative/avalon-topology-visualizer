@@ -27,6 +27,7 @@ import { useSelectionDrawer } from '../composables/useSelectionDrawer'
 import { useTimelapse } from '../composables/useTimelapse'
 import { useTopologyExtras } from '../composables/useTopologyExtras'
 import { useTrace } from '../composables/useTrace'
+import { shardKey } from '../utils/shardGroups'
 import { useTweenedPositions } from '../composables/useTweenedPositions'
 import { useViewerRtt } from '../composables/useViewerRtt'
 import { useWorkspace } from '../composables/useWorkspace'
@@ -49,6 +50,7 @@ const extraLayoutLinks = computed(() => [...viewerRtt.links.value, ...probe.link
 const extraDrawLinks = computed(() => [...viewerRtt.drawLinks.value, ...probe.drawLinks.value])
 const { layout, pinned, pin, unpin } = useLayout(merged, extraLayoutLinks, size)
 const { selected, facts, nodeStyles, links: linkStyles, detail } = useGraphStyle(merged, extraDrawLinks)
+const shards = computed(() => shardKey(facts.value))
 const animated = useTweenedPositions(computed(() => layout.value?.positions), timelapse.replaying, () => size.value.width, () => size.value.height)
 // The one view everything uses: the auto-fit plus the user's zoom and pan. The scale bar reads it too, so it stays true.
 const zoomView = useZoomView({ fitted: () => animated.view.value, positions: () => animated.positions.value, size: () => size.value })
@@ -231,6 +233,7 @@ function probeSecond() {
           :links="[...merged.links, ...viewerRtt.drawLinks.value]"
           :link-styles="extras.drawing.value.linkStyles"
           :node-styles="extras.drawing.value.nodeStyles"
+          :shard-key="shards"
           :pulse="extras.pulse.value"
           :pinned="pinned"
           :selected="selected"
@@ -264,7 +267,7 @@ function probeSecond() {
               :message="`Stopped at the ${merged.stoppedAtLimit.maxNodes ? 'node' : 'depth'} limit, so the graph may be incomplete.`"
             />
           </template>
-          <template v-if="layout" #legend><GraphLegend /></template>
+          <template v-if="layout" #legend><GraphLegend :shards="shards" /></template>
           <template #scale><ScaleBar :px="bar.px" :ms="bar.ms" /></template>
         </CanvasOverlay>
       </div>

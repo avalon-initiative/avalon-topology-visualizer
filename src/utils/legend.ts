@@ -4,11 +4,13 @@ import type { NodeShape } from './shapes'
 import type { LinkKind } from './styleGraph'
 import type { VersionState } from './nodeFacts'
 import type { AlertKind } from './alerts'
+import type { ShardKeyItem } from './shardGroups'
 
 export type LegendGlyph =
   | { type: 'link'; kind: LinkKind }
   | { type: 'node'; shape: NodeShape; hollow?: boolean; dimmed?: boolean; version?: VersionState; lag?: number; pinned?: boolean; alert?: AlertKind }
   | { type: 'pulse' }
+  | { type: 'shard'; color: number }
 
 export interface LegendItem {
   id: string
@@ -22,8 +24,17 @@ export interface LegendGroup {
 }
 
 /** Each entry names its mark in words as well as showing it, so nothing depends on colour alone. */
-export function legendGroups(): LegendGroup[] {
+export function legendGroups(shards: ShardKeyItem[] = []): LegendGroup[] {
   const shapes: NodeShape[] = ['square', 'diamond', 'triangle', 'hexagon', 'circle']
+  const shardGroup: LegendGroup[] =
+    shards.length === 0
+      ? []
+      : [
+          {
+            title: 'Shards (dashed outline)',
+            items: shards.map((s) => ({ id: `shard-${s.id}`, label: `Shard ${s.id} (nodes inside the dashed outline labelled "shard ${s.id}" serve it)`, glyph: { type: 'shard', color: s.color } as LegendGlyph })),
+          },
+        ]
   return [
     {
       title: 'Links',
@@ -62,6 +73,7 @@ export function legendGroups(): LegendGroup[] {
         { id: 'pulse', label: 'Changed since the last refresh: a node announced or a tree head advanced (a dot runs along the link; with reduced motion, a dashed green line)', glyph: { type: 'pulse' } },
       ],
     },
+    ...shardGroup,
   ]
 }
 
