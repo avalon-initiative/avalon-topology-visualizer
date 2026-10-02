@@ -426,4 +426,16 @@ describe('drawGraph shard regions', () => {
     drawGraph(faded.ctx, { ...input, nodeStyles: { 'http://a:1': { ...plain, shards: ['s1'], faded: true }, 'http://b:2': { ...plain, shards: ['s1'], faded: true } } })
     expect(faded.of('fillText').map((c) => c.args[0] as string).some((t) => t.startsWith('shard'))).toBe(false)
   })
+
+  it('places a shard name clear of every node label, even when its node sits on the top edge of the canvas', () => {
+    const r = recorder()
+    const positions = { 'http://192.168.7.183:8080': { x: 0, y: 0 }, 'http://192.168.7.194:8080': { x: 300, y: 10 }, 'http://192.168.7.204:8080': { x: 100, y: 150 } }
+    const styles = Object.fromEntries(Object.keys(positions).map((id) => [id, { ...plain, shards: ['core'] }]))
+    drawGraph(r.ctx, { ...base, positions, links: [], nodeStyles: styles, shardKey: [{ id: 'core', color: 0 }], view: { scale: 1, tx: 50, ty: 4 }, width: 500, height: 300 })
+    const texts = r.of('fillText').map((c) => ({ t: c.args[0] as string, x: c.args[1] as number, y: c.args[2] as number }))
+    const shard = texts.find((t) => t.t === 'shard core')!
+    expect(shard).toBeDefined()
+    expect(shard.y).toBeGreaterThan(0)
+    for (const n of texts.filter((t) => t.t !== 'shard core')) expect(Math.abs(n.y - shard.y) > 12 || Math.abs(n.x - shard.x) > 90).toBe(true)
+  })
 })

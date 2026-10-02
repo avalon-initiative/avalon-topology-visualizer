@@ -84,7 +84,6 @@ const FADED_ALPHA = 0.15
 const BADGE_RADIUS = 6
 const SHARD_PAD_PX = 16
 const SHARD_OUTLINE_ALPHA = 0.9
-const SHARD_LABEL_GAP = 4
 const LABEL_CLEARANCE = NODE_DRAW_RADIUS + 5
 const HALO_WIDTH = 3
 const HALO_ALPHA = 0.85
@@ -157,20 +156,24 @@ function drawShardRegion(ctx: CanvasRenderingContext2D, region: ShardRegion, the
   ctx.restore()
 }
 
-function drawShardLabel(ctx: CanvasRenderingContext2D, region: ShardRegion, theme: DrawTheme) {
-  const top = region.hull.reduce((best, p) => (p.y < best.y ? p : best))
+/** Shard names rank just under a must-have label: they get a spot before ordinary node labels, which then move aside. */
+const SHARD_LABEL_RANK = 0.5
+const SHARD_ANCHOR_RADIUS = 2
+const shardLabelId = (region: ShardRegion) => `shard:${region.id}`
+const shardLabelText = (region: ShardRegion) => `shard ${region.id.length > 12 ? `${region.id.slice(0, 11)}…` : region.id}`
+
+function drawShardLabel(ctx: CanvasRenderingContext2D, p: LabelPlacement, region: ShardRegion, theme: DrawTheme) {
   ctx.save()
   ctx.font = '10px sans-serif'
   ctx.textAlign = 'center'
-  ctx.textBaseline = 'bottom'
-  const text = `shard ${region.id.length > 12 ? `${region.id.slice(0, 11)}…` : region.id}`
-  const y = top.y - SHARD_PAD_PX - SHARD_LABEL_GAP
+  ctx.textBaseline = 'middle'
+  const [cx, cy] = [p.box.x + p.box.w / 2, p.box.y + LABEL_HEIGHT / 2]
   ctx.lineJoin = 'round'
   ctx.lineWidth = HALO_WIDTH * 2
   ctx.strokeStyle = theme.halo
-  ctx.strokeText(text, top.x, y)
+  ctx.strokeText(p.text, cx, cy)
   ctx.fillStyle = theme.shardPalette[region.color % theme.shardPalette.length]
-  ctx.fillText(text, top.x, y)
+  ctx.fillText(p.text, cx, cy)
   ctx.restore()
 }
 
@@ -250,7 +253,7 @@ function drawLabel(ctx: CanvasRenderingContext2D, p: LabelPlacement, style: Node
   ctx.restore()
 }
 
-function drawLabels(ctx: CanvasRenderingContext2D, input: DrawInput, theme: DrawTheme) {
+function drawLabels(ctx: CanvasRenderingContext2D, input: DrawInput, theme: DrawTheme, regions: ShardRegion[]) {
   const measure = (t: string) => {
     const w = ctx.measureText?.(t)?.width
     return typeof w === 'number' && Number.isFinite(w) ? w : estimateWidth(t)
@@ -259,13 +262,23 @@ function drawLabels(ctx: CanvasRenderingContext2D, input: DrawInput, theme: Draw
     const text = nodeLabel(id)
     return { id, at: toScreen(input.view, p), radius: LABEL_CLEARANCE, text, short: shortLabel(text), rank: labelRank(input, id) }
   })
+  // A shard's name is anchored on the top of its outline and placed with the node labels, so the two never overlap.
+  for (const region of regions) {
+    const top = region.hull.reduce((best, q) => (q.y < best.y ? q : best))
+    const text = shardLabelText(region)
+    items.push({ id: shardLabelId(region), at: { x: top.x, y: top.y - SHARD_PAD_PX }, radius: SHARD_ANCHOR_RADIUS, text, short: text, rank: SHARD_LABEL_RANK })
+  }
   const placements = placeLabels(items, { width: input.width, height: input.height, measure, previous: input.labelMemory })
   input.labelMemory?.clear()
+  const regionOf = new Map(regions.map((r) => [shardLabelId(r), r]))
   for (const item of items) {
     const p = placements.get(item.id)
     if (!p) continue
     input.labelMemory?.set(item.id, p.slot)
-    if (p.mode !== 'hidden') drawLabel(ctx, p, input.nodeStyles?.[item.id], theme)
+    if (p.mode === 'hidden') continue
+    const region = regionOf.get(item.id)
+    if (region) drawShardLabel(ctx, p, region, theme)
+    else drawLabel(ctx, p, input.nodeStyles?.[item.id], theme)
   }
 }
 
@@ -343,8 +356,7 @@ export function drawGraph(ctx: CanvasRenderingContext2D, input: DrawInput): void
     if (id === selected) ring(ctx, at, NODE_DRAW_RADIUS + SELECT_RING_OFFSET, theme.label, 1.5, [])
   }
 
-  for (const region of regions) drawShardLabel(ctx, region, theme)
-  drawLabels(ctx, input, theme)
+  drawLabels(ctx, input, theme, regions)
 
   ctx.font = '11px sans-serif'
   ctx.textAlign = 'center'
