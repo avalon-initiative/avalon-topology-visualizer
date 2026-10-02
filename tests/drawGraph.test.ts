@@ -431,7 +431,7 @@ describe('drawGraph shard regions', () => {
     const r = recorder()
     const positions = { 'http://192.168.7.183:8080': { x: 0, y: 0 }, 'http://192.168.7.194:8080': { x: 300, y: 10 }, 'http://192.168.7.204:8080': { x: 100, y: 150 } }
     const styles = Object.fromEntries(Object.keys(positions).map((id) => [id, { ...plain, shards: ['core'] }]))
-    drawGraph(r.ctx, { ...base, positions, links: [], nodeStyles: styles, shardKey: [{ id: 'core', color: 0 }], view: { scale: 1, tx: 50, ty: 4 }, width: 500, height: 300 })
+    drawGraph(r.ctx, { ...base, positions, links: [], nodeStyles: styles, shardKey: [{ id: 'core', color: 0, universal: false }], view: { scale: 1, tx: 50, ty: 4 }, width: 500, height: 300 })
     const texts = r.of('fillText').map((c) => ({ t: c.args[0] as string, x: c.args[1] as number, y: c.args[2] as number }))
     const shard = texts.find((t) => t.t === 'shard core')!
     expect(shard).toBeDefined()
