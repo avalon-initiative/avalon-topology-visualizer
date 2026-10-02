@@ -4,13 +4,13 @@ import type { NodeShape } from './shapes'
 import type { LinkKind } from './styleGraph'
 import type { VersionState } from './nodeFacts'
 import type { AlertKind } from './alerts'
-import type { ShardKeyItem } from './shardGroups'
+import type { ShardLegendItem } from '../composables/useShardOutlines'
 
 export type LegendGlyph =
   | { type: 'link'; kind: LinkKind }
   | { type: 'node'; shape: NodeShape; hollow?: boolean; dimmed?: boolean; version?: VersionState; lag?: number; pinned?: boolean; alert?: AlertKind }
   | { type: 'pulse' }
-  | { type: 'shard'; color: number }
+  | { type: 'shard'; shardId: string; color: number; shown: boolean }
 
 export interface LegendItem {
   id: string
@@ -23,16 +23,21 @@ export interface LegendGroup {
   items: LegendItem[]
 }
 
+function shardLabel(s: ShardLegendItem): string {
+  const state = s.shown ? 'outline shown' : s.universal ? 'outline hidden, every node is in it' : 'outline hidden'
+  return `Shard ${s.id} (${state}; click the mark to ${s.shown ? 'hide' : 'show'} it)`
+}
+
 /** Each entry names its mark in words as well as showing it, so nothing depends on colour alone. */
-export function legendGroups(shards: ShardKeyItem[] = []): LegendGroup[] {
+export function legendGroups(shards: ShardLegendItem[] = []): LegendGroup[] {
   const shapes: NodeShape[] = ['square', 'diamond', 'triangle', 'hexagon', 'circle']
   const shardGroup: LegendGroup[] =
     shards.length === 0
       ? []
       : [
           {
-            title: 'Shards (dashed outline)',
-            items: shards.map((s) => ({ id: `shard-${s.id}`, label: `Shard ${s.id} (nodes inside the dashed outline labelled "shard ${s.id}" serve it)`, glyph: { type: 'shard', color: s.color } as LegendGlyph })),
+            title: 'Shards (dashed outline around the nodes in each)',
+            items: shards.map((s) => ({ id: `shard-${s.id}`, label: shardLabel(s), glyph: { type: 'shard', shardId: s.id, color: s.color, shown: s.shown } as LegendGlyph })),
           },
         ]
   return [

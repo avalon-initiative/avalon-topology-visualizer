@@ -12,6 +12,10 @@ describe('GraphLegend', () => {
     for (const i of items) expect(wrapper.text()).toContain(i.label)
   })
 
+  it('carries this app\'s own legend class on the shared component, which boxes each entry', () => {
+    expect(wrapper.get('[aria-label="Legend"]').classes().length).toBeGreaterThan(1)
+  })
+
   it('is a section named Legend', () => {
     expect(wrapper.get('[aria-label="Legend"]').element.tagName).toBe('SECTION')
   })
@@ -50,14 +54,26 @@ describe('GraphLegend alerts and changes', () => {
 })
 
 describe('GraphLegend shards', () => {
+  const shards = [
+    { id: 'abc', color: 0, universal: true, shown: false },
+    { id: 'def', color: 1, universal: false, shown: true },
+  ]
+
   it('shows no shard group when the graph has no shards', () => {
     expect(mount(GraphLegend).text()).not.toContain('Shards')
   })
 
-  it('names each shard with a mark of its colour', () => {
-    const w = mount(GraphLegend, { props: { shards: [{ id: 'abc', color: 0 }, { id: 'def', color: 1 }] } })
-    expect(w.text()).toContain('Shard abc')
-    expect(w.text()).toContain('Shard def')
-    expect(w.findAll('rect')).toHaveLength(2)
+  it('names each shard in words with its outline state', () => {
+    const text = mount(GraphLegend, { props: { shards } }).text()
+    expect(text).toContain('Shard abc (outline hidden, every node is in it')
+    expect(text).toContain('Shard def (outline shown')
+  })
+
+  it('makes each shard mark a toggle that reports its state and asks for that shard', async () => {
+    const w = mount(GraphLegend, { props: { shards } })
+    const buttons = w.findAll('button')
+    expect(buttons.map((b) => b.attributes('aria-pressed'))).toEqual(['false', 'true'])
+    await buttons[0].trigger('click')
+    expect(w.emitted('toggleShard')).toEqual([['abc']])
   })
 })

@@ -404,7 +404,7 @@ describe('drawGraph shard regions', () => {
   const input = {
     ...base,
     nodeStyles: { 'http://a:1': { ...plain, shards: ['s1'] }, 'http://b:2': { ...plain, shards: ['s1'] } },
-    shardKey: [{ id: 's1', color: 1 }],
+    shardKey: [{ id: 's1', color: 1, universal: false }],
     theme: { ...DEFAULT_THEME, shardPalette: ['#000001', '#000002'] },
   }
 
