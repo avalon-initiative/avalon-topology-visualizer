@@ -7,6 +7,7 @@ const noop = new Proxy({} as Record<string, unknown>, { get: () => () => undefin
 const { walkTopology, traceRoute } = vi.hoisted(() => ({ walkTopology: vi.fn(), traceRoute: vi.fn() }))
 vi.mock('@avalon-initiative/protocol-sdk', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@avalon-initiative/protocol-sdk')>()),
+  fetchTrustAnchors: vi.fn(async () => []),
   walkTopology,
   traceRoute,
 }))
@@ -75,7 +76,7 @@ describe('Home layout', () => {
     const tabs = w.findAll('[role="tab"]')
     expect(tabs[0].attributes('disabled')).toBeUndefined()
     for (const t of tabs.slice(1)) expect(t.attributes('disabled')).toBeDefined()
-    expect(w.text()).toContain('Enter a seed node URL')
+    expect(w.text()).toContain('Choose a network to walk')
   })
 
   it('hides and shows the sidebar from the top bar', async () => {

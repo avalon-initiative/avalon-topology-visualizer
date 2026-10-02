@@ -55,16 +55,16 @@ export function useCrawler() {
     }
   }
 
-  /** Walks from `rawSeed` now, then again every `refreshMs` (0 = once). */
-  function start(rawSeed: string, limits: WalkLimits = {}, refreshMs = 0) {
-    const seed = normalizeNodeUrl(rawSeed)
-    if (!seed) {
+  /** Walks from the seed node(s) now, then again every `refreshMs` (0 = once). */
+  function start(rawSeeds: string | string[], limits: WalkLimits = {}, refreshMs = 0) {
+    const seeds = [...new Set([rawSeeds].flat().map((raw) => normalizeNodeUrl(raw)).filter((url): url is string => !!url))]
+    if (seeds.length === 0) {
       error.value = 'Enter an http(s) URL for a seed node.'
       phase.value = 'failed'
       return
     }
     cancelPending()
-    return pass(liveWalkSource([seed], limits), refreshMs)
+    return pass(liveWalkSource(seeds, limits), refreshMs)
   }
 
   function stop() {

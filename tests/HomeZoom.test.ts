@@ -10,6 +10,7 @@ const noop = new Proxy({} as Record<string, unknown>, { get: () => () => undefin
 const { walkTopology, traceRoute } = vi.hoisted(() => ({ walkTopology: vi.fn(), traceRoute: vi.fn() }))
 vi.mock('@avalon-initiative/protocol-sdk', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@avalon-initiative/protocol-sdk')>()),
+  fetchTrustAnchors: vi.fn(async () => []),
   walkTopology,
   traceRoute,
 }))

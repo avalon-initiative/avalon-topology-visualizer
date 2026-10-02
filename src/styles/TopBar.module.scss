@@ -149,3 +149,16 @@
     flex: none;
   }
 }
+
+.networks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--av-space-2);
+}
+
+.networksLabel {
+  font-size: var(--av-text-sm);
+  font-weight: 600;
+  color: var(--av-color-text-secondary);
+}
