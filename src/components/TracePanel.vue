@@ -121,7 +121,7 @@ defineEmits<{
       <p :class="styles.note">
         Playback keeps the proportions of these reported times but is stretched so the whole path takes a few seconds to
         watch. On the map, each numbered badge is a hop, with its processing and forward time. Each leg to the next hop is
-        a round trip, so it is split evenly between the way out and the way back. The viewer's own legs have no reported
+        a round trip, so it is split evenly between the way out and the way back; the way back is the response, drawn as an outline with a dotted tail. A route through stops or back to the entry plays once along its path, with no response replay. The viewer's own legs have no reported
         time and are drawn at a fixed length.
       </p>
     </template>

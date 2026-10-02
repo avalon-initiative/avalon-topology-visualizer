@@ -36,14 +36,14 @@ export interface Timeline {
 const finite = (n: number | null | undefined) => (typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : 0)
 
 /** Everything the nodes reported along the path, in the same terms the segments use; the viewer's legs are not part of it. */
-function reportedTotal(result: Pick<TraceResult, 'hops' | 'reached'>): number {
+function reportedTotal(result: Pick<TraceResult, 'hops' | 'reached'>, response: boolean): number {
   const hops = result.hops
   const last = hops.length - 1
   let sum = 0
   hops.forEach((h, i) => {
     sum += finite(h.processing_ms)
-    // A leg is drawn once out and, only when the target answered, once back, each half of the round trip.
-    if (i < last) sum += (finite(h.to_next_ms) / 2) * (result.reached ? 2 : 1)
+    // A leg is drawn once out and, only when the target answered and a response is shown, once back, each half of the round trip.
+    if (i < last) sum += (finite(h.to_next_ms) / 2) * (response ? 2 : 1)
   })
   if (!result.reached) sum += finite(hops[last]?.to_next_ms)
   return sum
@@ -54,7 +54,9 @@ function reportedTotal(result: Pick<TraceResult, 'hops' | 'reached'>): number {
  * and (when the target was reached) the legs back. `to_next_ms` is a round trip, so each direction gets half.
  * Only returned hops appear; a stopped trace ends at its last hop, waiting there if the node reported a wait.
  */
-export function buildTimeline(result: Pick<TraceResult, 'hops' | 'reached'>, viewerId: string): Timeline {
+export function buildTimeline(result: Pick<TraceResult, 'hops' | 'reached'>, viewerId: string, options: { response?: boolean } = {}): Timeline {
+  // `response: false` plays the path once, out only: for a route made of several traces, whose path is the story.
+  const response = result.reached && options.response !== false
   const hops = result.hops
   const segments: Segment[] = []
   let at = 0
@@ -65,7 +67,7 @@ export function buildTimeline(result: Pick<TraceResult, 'hops' | 'reached'>, vie
   if (hops.length === 0) return { segments, totalMs: 0, reportedMs: 0, hopCount: 0, roundTrip: false }
 
   const last = hops.length - 1
-  const reportedMs = reportedTotal(result)
+  const reportedMs = reportedTotal(result, response)
   const viewerLeg = reportedMs > 0 ? reportedMs * VIEWER_LEG_SHARE : NOMINAL_VIEWER_LEG_MS
   push({ kind: 'transit', from: viewerId, to: hops[0].base_url, durationMs: viewerLeg, direction: 'out', hopIndex: null, reported: false })
   hops.forEach((hop, i) => {
@@ -79,6 +81,7 @@ export function buildTimeline(result: Pick<TraceResult, 'hops' | 'reached'>, vie
     if (waited > 0) push({ kind: 'wait', from: hops[last].base_url, to: hops[last].base_url, durationMs: waited, direction: 'out', hopIndex: last, reported: true })
     return { segments, totalMs: at, reportedMs, hopCount: hops.length, roundTrip: false }
   }
+  if (!response) return { segments, totalMs: at, reportedMs, hopCount: hops.length, roundTrip: false }
   for (let i = last - 1; i >= 0; i--) {
     push({ kind: 'transit', from: hops[i + 1].base_url, to: hops[i].base_url, durationMs: finite(hops[i].to_next_ms) / 2, direction: 'back', hopIndex: i, reported: true })
   }
